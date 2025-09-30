@@ -30,11 +30,23 @@ const DIRETORIAS = [
   { value: "SEF", label: "Secretaria de Economia e Finanças - SEF" },
 ];
 
+const TIPOS_VISTORIA = [
+  "Técnica Regular",
+  "Preventiva",
+  "De Rotina",
+  "De Ordem Superior",
+  "Corretiva/Emergencial",
+  "Para Recebimento de Obra",
+  "Administrativa/Patrimonial",
+];
+
 const NovaSolicitacao = () => {
   const [objeto, setObjeto] = useState("");
   const [organizacaoId, setOrganizacaoId] = useState("");
   const [enderecoCompleto, setEnderecoCompleto] = useState("");
-  const [contatoResponsavel, setContatoResponsavel] = useState("");
+  const [contatoNome, setContatoNome] = useState("");
+  const [contatoTelefone, setContatoTelefone] = useState("");
+  const [contatoEmail, setContatoEmail] = useState("");
   const [diretoriaResponsavel, setDiretoriaResponsavel] = useState("");
   const [dataSolicitacao, setDataSolicitacao] = useState(new Date());
   const [classificacaoUrgencia, setClassificacaoUrgencia] = useState("");
@@ -117,7 +129,9 @@ const NovaSolicitacao = () => {
           usuario_id: user.id,
           status: "pending",
           endereco_completo: enderecoCompleto,
-          contato_responsavel: contatoResponsavel,
+          contato_nome: contatoNome,
+          contato_telefone: contatoTelefone,
+          contato_email: contatoEmail,
           diretoria_responsavel: diretoriaResponsavel,
           data_solicitacao: dataSolicitacao.toISOString(),
           classificacao_urgencia: classificacaoUrgencia,
@@ -258,15 +272,42 @@ const NovaSolicitacao = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="contato">Contato do Responsável na OM Apoiada</Label>
-              <Input
-                id="contato"
-                placeholder="Nome, telefone e e-mail do responsável"
-                value={contatoResponsavel}
-                onChange={(e) => setContatoResponsavel(e.target.value)}
-                required
-              />
+            <div className="space-y-4">
+              <Label>Contato do Responsável na OM Apoiada</Label>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contatoNome">Nome</Label>
+                  <Input
+                    id="contatoNome"
+                    placeholder="Nome completo do responsável"
+                    value={contatoNome}
+                    onChange={(e) => setContatoNome(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contatoTelefone">Telefone</Label>
+                  <Input
+                    id="contatoTelefone"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={contatoTelefone}
+                    onChange={(e) => setContatoTelefone(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contatoEmail">E-mail</Label>
+                  <Input
+                    id="contatoEmail"
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={contatoEmail}
+                    onChange={(e) => setContatoEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -367,13 +408,18 @@ const NovaSolicitacao = () => {
 
             <div className="space-y-2">
               <Label htmlFor="tipo">Tipo de Vistoria</Label>
-              <Input
-                id="tipo"
-                placeholder="Ex: Técnica, Administrativa, etc."
-                value={tipoVistoria}
-                onChange={(e) => setTipoVistoria(e.target.value)}
-                required
-              />
+              <Select value={tipoVistoria} onValueChange={setTipoVistoria} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de vistoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_VISTORIA.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      {tipo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

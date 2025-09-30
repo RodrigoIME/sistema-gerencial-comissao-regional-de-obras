@@ -117,7 +117,9 @@ export type Database = {
       solicitacoes: {
         Row: {
           classificacao_urgencia: string | null
-          contato_responsavel: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           data_solicitacao: string | null
           diretoria_responsavel: string | null
           documento_origem_anexo: string | null
@@ -134,7 +136,9 @@ export type Database = {
         }
         Insert: {
           classificacao_urgencia?: string | null
-          contato_responsavel?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
           data_solicitacao?: string | null
           diretoria_responsavel?: string | null
           documento_origem_anexo?: string | null
@@ -151,7 +155,9 @@ export type Database = {
         }
         Update: {
           classificacao_urgencia?: string | null
-          contato_responsavel?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
           data_solicitacao?: string | null
           diretoria_responsavel?: string | null
           documento_origem_anexo?: string | null
