@@ -13,8 +13,9 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 
 interface Organizacao {
   id: number;
-  nome: string;
-  diretoria: string;
+  "Organização Militar": string;
+  "Órgão Setorial Responsável": string;
+  "Sigla da OM": string;
 }
 
 const Dashboard = () => {
@@ -51,7 +52,7 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from("organizacoes")
       .select("*")
-      .order("nome");
+      .order('"Organização Militar"');
 
     if (error) {
       toast.error("Erro ao carregar organizações");
@@ -160,7 +161,7 @@ const Dashboard = () => {
       const chartData = organizacoes
         .filter((org) => omCounts[org.id])
         .map((org) => ({
-          om: org.nome,
+          om: org["Organização Militar"],
           Total: omCounts[org.id],
         }));
 
@@ -184,7 +185,7 @@ const Dashboard = () => {
       filtered.forEach((item) => {
         const org = organizacoes.find((o) => o.id === item.organizacao_id);
         if (org) {
-          const setorial = org.diretoria;
+          const setorial = org["Órgão Setorial Responsável"];
           setorialCounts[setorial] = (setorialCounts[setorial] || 0) + 1;
         }
       });
@@ -205,7 +206,7 @@ const Dashboard = () => {
     }
   };
 
-  const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o.diretoria)));
+  const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o["Órgão Setorial Responsável"])));
 
   const cards = [
     {
@@ -320,7 +321,7 @@ const Dashboard = () => {
                   <SelectItem value="all">Todas</SelectItem>
                   {organizacoes.map((org) => (
                     <SelectItem key={org.id} value={org.id.toString()}>
-                      {org.nome}
+                      {org["Organização Militar"]}
                     </SelectItem>
                   ))}
                 </SelectContent>

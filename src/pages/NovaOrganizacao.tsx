@@ -23,8 +23,8 @@ const NovaOrganizacao = () => {
       const { error } = await supabase
         .from("organizacoes")
         .insert({
-          nome,
-          diretoria,
+          "Organização Militar": nome,
+          "Órgão Setorial Responsável": diretoria,
           "Sigla da OM": sigla,
         });
 

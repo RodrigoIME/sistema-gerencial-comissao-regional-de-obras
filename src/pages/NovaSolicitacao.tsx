@@ -7,8 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Upload, FileText } from "lucide-react";
+import { Upload, FileText, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Organizacao {
   id: number;
@@ -19,6 +23,16 @@ interface Organizacao {
 const NovaSolicitacao = () => {
   const [objeto, setObjeto] = useState("");
   const [organizacaoId, setOrganizacaoId] = useState("");
+  const [enderecoCompleto, setEnderecoCompleto] = useState("");
+  const [contatoResponsavel, setContatoResponsavel] = useState("");
+  const [diretoriaResponsavel, setDiretoriaResponsavel] = useState("");
+  const [dataSolicitacao, setDataSolicitacao] = useState(new Date());
+  const [classificacaoUrgencia, setClassificacaoUrgencia] = useState("");
+  const [documentoOrigemDados, setDocumentoOrigemDados] = useState("");
+  const [documentoOrigemFile, setDocumentoOrigemFile] = useState<File | null>(null);
+  const [numeroReferenciaOpous, setNumeroReferenciaOpous] = useState("");
+  const [objetivoVistoria, setObjetivoVistoria] = useState("");
+  const [tipoVistoria, setTipoVistoria] = useState("");
   const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
   const [files, setFiles] = useState<FileList | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,14 +46,21 @@ const NovaSolicitacao = () => {
     const { data, error } = await supabase
       .from("organizacoes")
       .select("*")
-      .order("nome");
+      .order('"Organização Militar"');
 
     if (error) {
       toast.error("Erro ao carregar organizações");
       return;
     }
 
-    setOrganizacoes(data || []);
+    // Mapear os dados do Supabase para a interface esperada
+    const mappedData: Organizacao[] = (data || []).map((org: any) => ({
+      id: org.id,
+      nome: org["Organização Militar"],
+      diretoria: org["Órgão Setorial Responsável"],
+    }));
+
+    setOrganizacoes(mappedData);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,6 +75,25 @@ const NovaSolicitacao = () => {
         return;
       }
 
+      // Upload do documento de origem se houver
+      let documentoOrigemUrl = "";
+      if (documentoOrigemFile) {
+        const fileName = `${Date.now()}_${documentoOrigemFile.name}`;
+        const filePath = `${user.id}/documentos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("anexos")
+          .upload(filePath, documentoOrigemFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("anexos")
+          .getPublicUrl(filePath);
+
+        documentoOrigemUrl = publicUrl;
+      }
+
       const { data: solicitacao, error: solicitacaoError } = await supabase
         .from("solicitacoes")
         .insert({
@@ -61,6 +101,16 @@ const NovaSolicitacao = () => {
           organizacao_id: parseInt(organizacaoId),
           usuario_id: user.id,
           status: "pending",
+          endereco_completo: enderecoCompleto,
+          contato_responsavel: contatoResponsavel,
+          diretoria_responsavel: diretoriaResponsavel,
+          data_solicitacao: dataSolicitacao.toISOString(),
+          classificacao_urgencia: classificacaoUrgencia,
+          documento_origem_dados: documentoOrigemDados,
+          documento_origem_anexo: documentoOrigemUrl,
+          numero_referencia_opous: numeroReferenciaOpous,
+          objetivo_vistoria: objetivoVistoria,
+          tipo_vistoria: tipoVistoria,
         })
         .select()
         .single();
@@ -120,10 +170,10 @@ const NovaSolicitacao = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="objeto">Objeto da Solicitação</Label>
+              <Label htmlFor="objeto">Objeto da Vistoria</Label>
               <Textarea
                 id="objeto"
-                placeholder="Descreva o objeto da solicitação..."
+                placeholder="Descreva o objeto da vistoria..."
                 value={objeto}
                 onChange={(e) => setObjeto(e.target.value)}
                 required
@@ -132,7 +182,7 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organizacao">Organização Militar</Label>
+              <Label htmlFor="organizacao">Organização Militar Apoiada</Label>
               <Select value={organizacaoId} onValueChange={setOrganizacaoId} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma organização" />
@@ -148,7 +198,148 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="files">Anexos (opcional)</Label>
+              <Label htmlFor="endereco">Endereço Completo de onde Será Realizada a Vistoria</Label>
+              <Textarea
+                id="endereco"
+                placeholder="Endereço completo..."
+                value={enderecoCompleto}
+                onChange={(e) => setEnderecoCompleto(e.target.value)}
+                required
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contato">Contato do Responsável na OM Apoiada</Label>
+              <Input
+                id="contato"
+                placeholder="Nome, telefone e e-mail do responsável"
+                value={contatoResponsavel}
+                onChange={(e) => setContatoResponsavel(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="diretoria">Diretoria Responsável</Label>
+              <Input
+                id="diretoria"
+                placeholder="Nome da diretoria responsável"
+                value={diretoriaResponsavel}
+                onChange={(e) => setDiretoriaResponsavel(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dataSolicitacao">Data da Solicitação</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dataSolicitacao && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataSolicitacao ? format(dataSolicitacao, "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataSolicitacao}
+                    onSelect={(date) => date && setDataSolicitacao(date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="classificacao">Classificação da Urgência</Label>
+              <Select value={classificacaoUrgencia} onValueChange={setClassificacaoUrgencia} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a urgência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Prioritário">Prioritário</SelectItem>
+                  <SelectItem value="Não Prioritário">Não Prioritário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="documentoDados">Documento que Originou a Solicitação (Dados)</Label>
+              <Textarea
+                id="documentoDados"
+                placeholder="Descreva os dados do documento (número, tipo, data, etc.)"
+                value={documentoOrigemDados}
+                onChange={(e) => setDocumentoOrigemDados(e.target.value)}
+                required
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="documentoAnexo">Anexar Documento de Origem</Label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
+                <input
+                  id="documentoAnexo"
+                  type="file"
+                  onChange={(e) => setDocumentoOrigemFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+                <label htmlFor="documentoAnexo" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Clique para anexar o documento
+                  </p>
+                  {documentoOrigemFile && (
+                    <p className="text-sm text-primary mt-2 font-medium">
+                      {documentoOrigemFile.name}
+                    </p>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="opous">Número de Referência no Sistema OPOUS</Label>
+              <Input
+                id="opous"
+                placeholder="Número de referência no OPOUS"
+                value={numeroReferenciaOpous}
+                onChange={(e) => setNumeroReferenciaOpous(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="objetivo">Objetivo da Vistoria</Label>
+              <Textarea
+                id="objetivo"
+                placeholder="Descreva o objetivo da vistoria..."
+                value={objetivoVistoria}
+                onChange={(e) => setObjetivoVistoria(e.target.value)}
+                required
+                className="min-h-[100px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de Vistoria</Label>
+              <Input
+                id="tipo"
+                placeholder="Ex: Técnica, Administrativa, etc."
+                value={tipoVistoria}
+                onChange={(e) => setTipoVistoria(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="files">Anexos Adicionais (opcional)</Label>
               <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
                 <input
                   id="files"
@@ -160,7 +351,7 @@ const NovaSolicitacao = () => {
                 <label htmlFor="files" className="cursor-pointer">
                   <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Clique para selecionar arquivos
+                    Clique para selecionar arquivos adicionais
                   </p>
                   {files && files.length > 0 && (
                     <p className="text-sm text-primary mt-2 font-medium">

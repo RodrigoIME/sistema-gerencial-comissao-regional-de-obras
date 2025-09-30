@@ -55,7 +55,7 @@ const SolicitacaoDetalhes = () => {
       const [solicitacaoRes, vistoriasRes, anexosRes] = await Promise.all([
         supabase
           .from("solicitacoes")
-          .select(`*, organizacoes (nome, diretoria)`)
+          .select(`*, organizacoes ("Organização Militar", "Órgão Setorial Responsável")`)
           .eq("id", solicitacaoId)
           .single(),
         supabase
@@ -72,7 +72,16 @@ const SolicitacaoDetalhes = () => {
 
       if (solicitacaoRes.error) throw solicitacaoRes.error;
 
-      setSolicitacao(solicitacaoRes.data);
+      // Mapear os dados para a interface esperada
+      const mappedSolicitacao = {
+        ...solicitacaoRes.data,
+        organizacoes: solicitacaoRes.data.organizacoes ? {
+          nome: solicitacaoRes.data.organizacoes["Organização Militar"],
+          diretoria: solicitacaoRes.data.organizacoes["Órgão Setorial Responsável"],
+        } : undefined,
+      };
+
+      setSolicitacao(mappedSolicitacao);
       setVistorias(vistoriasRes.data || []);
       setAnexos(anexosRes.data || []);
     } catch (error: any) {

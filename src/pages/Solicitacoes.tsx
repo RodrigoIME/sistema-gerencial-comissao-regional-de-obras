@@ -59,13 +59,23 @@ const Solicitacoes = () => {
         .from("solicitacoes")
         .select(`
           *,
-          organizacoes (nome, diretoria)
+          organizacoes ("Organização Militar", "Órgão Setorial Responsável")
         `)
         .order("data_solicitacao", { ascending: false });
 
       if (error) throw error;
-      setSolicitacoes(data || []);
-      setFilteredSolicitacoes(data || []);
+      
+      // Mapear os dados para a interface esperada
+      const mappedData = (data || []).map((sol: any) => ({
+        ...sol,
+        organizacoes: sol.organizacoes ? {
+          nome: sol.organizacoes["Organização Militar"],
+          diretoria: sol.organizacoes["Órgão Setorial Responsável"],
+        } : undefined,
+      }));
+      
+      setSolicitacoes(mappedData);
+      setFilteredSolicitacoes(mappedData);
     } catch (error: any) {
       toast.error("Erro ao carregar solicitações");
       console.error(error);

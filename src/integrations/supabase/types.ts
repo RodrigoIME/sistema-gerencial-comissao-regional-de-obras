@@ -46,47 +46,124 @@ export type Database = {
           },
         ]
       }
-      organizacoes: {
+      Organizacao_Militar: {
         Row: {
-          diretoria: string
           id: number
-          nome: string
+          Nome_da_Organizacao_Militar_Apoiada: string
+          Sigla_da_OM: string
+          Sigla_Orgao_de_Direcao_Setorial: number
         }
         Insert: {
-          diretoria: string
           id?: number
-          nome: string
+          Nome_da_Organizacao_Militar_Apoiada: string
+          Sigla_da_OM: string
+          Sigla_Orgao_de_Direcao_Setorial: number
         }
         Update: {
-          diretoria?: string
           id?: number
-          nome?: string
+          Nome_da_Organizacao_Militar_Apoiada?: string
+          Sigla_da_OM?: string
+          Sigla_Orgao_de_Direcao_Setorial?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Organizacao_Militar_Sigla_Orgao_de_Direcao_Setorial_fkey"
+            columns: ["Sigla_Orgao_de_Direcao_Setorial"]
+            isOneToOne: false
+            referencedRelation: "Orgao_de_Direcao_Setorial"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizacoes: {
+        Row: {
+          id: number
+          "Organização Militar": string
+          "Órgão Setorial Responsável": string
+          "Sigla da OM": string
+        }
+        Insert: {
+          id?: number
+          "Organização Militar": string
+          "Órgão Setorial Responsável": string
+          "Sigla da OM": string
+        }
+        Update: {
+          id?: number
+          "Organização Militar"?: string
+          "Órgão Setorial Responsável"?: string
+          "Sigla da OM"?: string
+        }
+        Relationships: []
+      }
+      Orgao_de_Direcao_Setorial: {
+        Row: {
+          id: number
+          Nome_do_Orgao_de_Direcao_Setorial: string
+          Sigla_do_Orgao_de_Direcao_Setorial: string
+        }
+        Insert: {
+          id?: number
+          Nome_do_Orgao_de_Direcao_Setorial: string
+          Sigla_do_Orgao_de_Direcao_Setorial: string
+        }
+        Update: {
+          id?: number
+          Nome_do_Orgao_de_Direcao_Setorial?: string
+          Sigla_do_Orgao_de_Direcao_Setorial?: string
         }
         Relationships: []
       }
       solicitacoes: {
         Row: {
+          classificacao_urgencia: string | null
+          contato_responsavel: string | null
           data_solicitacao: string | null
+          diretoria_responsavel: string | null
+          documento_origem_anexo: string | null
+          documento_origem_dados: string | null
+          endereco_completo: string | null
           id: number
+          numero_referencia_opous: string | null
+          objetivo_vistoria: string | null
           objeto: string
           organizacao_id: number | null
           status: string | null
+          tipo_vistoria: string | null
           usuario_id: string | null
         }
         Insert: {
+          classificacao_urgencia?: string | null
+          contato_responsavel?: string | null
           data_solicitacao?: string | null
+          diretoria_responsavel?: string | null
+          documento_origem_anexo?: string | null
+          documento_origem_dados?: string | null
+          endereco_completo?: string | null
           id?: number
+          numero_referencia_opous?: string | null
+          objetivo_vistoria?: string | null
           objeto: string
           organizacao_id?: number | null
           status?: string | null
+          tipo_vistoria?: string | null
           usuario_id?: string | null
         }
         Update: {
+          classificacao_urgencia?: string | null
+          contato_responsavel?: string | null
           data_solicitacao?: string | null
+          diretoria_responsavel?: string | null
+          documento_origem_anexo?: string | null
+          documento_origem_dados?: string | null
+          endereco_completo?: string | null
           id?: number
+          numero_referencia_opous?: string | null
+          objetivo_vistoria?: string | null
           objeto?: string
           organizacao_id?: number | null
           status?: string | null
+          tipo_vistoria?: string | null
           usuario_id?: string | null
         }
         Relationships: [
