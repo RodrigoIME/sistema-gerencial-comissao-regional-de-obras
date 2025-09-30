@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Search } from "lucide-react";
+import { Eye, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -105,11 +105,20 @@ const Solicitacoes = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight mb-2">Solicitações</h2>
-        <p className="text-muted-foreground">
-          Gerencie todas as solicitações de inspeção
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight mb-2">Solicitações</h2>
+          <p className="text-muted-foreground">
+            Gerencie todas as solicitações de inspeção
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/importar-vistorias")}
+          className="gap-2"
+        >
+          <Upload className="h-4 w-4" />
+          Importar Vistorias
+        </Button>
       </div>
 
       <Card className="border-0 shadow-lg">

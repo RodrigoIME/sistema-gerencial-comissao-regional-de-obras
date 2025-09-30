@@ -10,6 +10,7 @@ import Solicitacoes from "./pages/Solicitacoes";
 import NovaSolicitacao from "./pages/NovaSolicitacao";
 import NovaOrganizacao from "./pages/NovaOrganizacao";
 import SolicitacaoDetalhes from "./pages/SolicitacaoDetalhes";
+import ImportarVistorias from "./pages/ImportarVistorias";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
         <Route path="/nova-solicitacao" element={<NovaSolicitacao />} />
         <Route path="/nova-organizacao" element={<NovaOrganizacao />} />
         <Route path="/solicitacao/:id" element={<SolicitacaoDetalhes />} />
+        <Route path="/importar-vistorias" element={<ImportarVistorias />} />
         <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
