@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Solicitacoes from "./pages/Solicitacoes";
 import NovaSolicitacao from "./pages/NovaSolicitacao";
+import NovaOrganizacao from "./pages/NovaOrganizacao";
 import SolicitacaoDetalhes from "./pages/SolicitacaoDetalhes";
 import NotFound from "./pages/NotFound";
 
@@ -22,11 +23,12 @@ const App = () => (
         <Layout>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/solicitacoes" element={<Solicitacoes />} />
-            <Route path="/nova-solicitacao" element={<NovaSolicitacao />} />
-            <Route path="/solicitacao/:id" element={<SolicitacaoDetalhes />} />
-            <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/solicitacoes" element={<Solicitacoes />} />
+        <Route path="/nova-solicitacao" element={<NovaSolicitacao />} />
+        <Route path="/nova-organizacao" element={<NovaOrganizacao />} />
+        <Route path="/solicitacao/:id" element={<SolicitacaoDetalhes />} />
+        <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
       </BrowserRouter>

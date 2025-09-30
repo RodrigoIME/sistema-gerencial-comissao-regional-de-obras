@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Plus } from "lucide-react";
+import { LayoutDashboard, FileText, Plus, Building2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -15,6 +15,7 @@ const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Solicitações", url: "/solicitacoes", icon: FileText },
   { title: "Nova Solicitação", url: "/nova-solicitacao", icon: Plus },
+  { title: "Nova Organização", url: "/nova-organizacao", icon: Building2 },
 ];
 
 export function AppSidebar() {
