@@ -20,6 +20,16 @@ interface Organizacao {
   diretoria: string;
 }
 
+const DIRETORIAS = [
+  { value: "COLOG", label: "Comando Logístico - COLOG" },
+  { value: "COTER", label: "Comando de Operações Terrestres - COTER" },
+  { value: "DCT", label: "Departamento de Ciência e Tecnologia - DCT" },
+  { value: "DEC", label: "Departamento de Engenharia e Construção - DEC" },
+  { value: "DECEx", label: "Departamento de Educação e Cultura do Exército - DECEx" },
+  { value: "DGP", label: "Departamento Geral do Pessoal - DGP" },
+  { value: "SEF", label: "Secretaria de Economia e Finanças - SEF" },
+];
+
 const NovaSolicitacao = () => {
   const [objeto, setObjeto] = useState("");
   const [organizacaoId, setOrganizacaoId] = useState("");
@@ -37,6 +47,11 @@ const NovaSolicitacao = () => {
   const [files, setFiles] = useState<FileList | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Filtrar organizações baseado na diretoria selecionada
+  const organizacoesFiltradas = diretoriaResponsavel
+    ? organizacoes.filter((org) => org.diretoria === diretoriaResponsavel)
+    : [];
 
   useEffect(() => {
     fetchOrganizacoes();
@@ -182,15 +197,49 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organizacao">Organização Militar Apoiada</Label>
-              <Select value={organizacaoId} onValueChange={setOrganizacaoId} required>
+              <Label htmlFor="diretoria">Diretoria Responsável</Label>
+              <Select 
+                value={diretoriaResponsavel} 
+                onValueChange={(value) => {
+                  setDiretoriaResponsavel(value);
+                  setOrganizacaoId(""); // Limpar organização ao mudar diretoria
+                }} 
+                required
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma organização" />
+                  <SelectValue placeholder="Selecione a diretoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {organizacoes.map((org) => (
+                  {DIRETORIAS.map((dir) => (
+                    <SelectItem key={dir.value} value={dir.value}>
+                      {dir.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="organizacao">Organização Militar Apoiada</Label>
+              <Select 
+                value={organizacaoId} 
+                onValueChange={setOrganizacaoId} 
+                required
+                disabled={!diretoriaResponsavel}
+              >
+                <SelectTrigger>
+                  <SelectValue 
+                    placeholder={
+                      diretoriaResponsavel 
+                        ? "Selecione uma organização" 
+                        : "Selecione primeiro a diretoria"
+                    } 
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizacoesFiltradas.map((org) => (
                     <SelectItem key={org.id} value={org.id.toString()}>
-                      {org.nome} - {org.diretoria}
+                      {org.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -216,17 +265,6 @@ const NovaSolicitacao = () => {
                 placeholder="Nome, telefone e e-mail do responsável"
                 value={contatoResponsavel}
                 onChange={(e) => setContatoResponsavel(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="diretoria">Diretoria Responsável</Label>
-              <Input
-                id="diretoria"
-                placeholder="Nome da diretoria responsável"
-                value={diretoriaResponsavel}
-                onChange={(e) => setDiretoriaResponsavel(e.target.value)}
                 required
               />
             </div>
