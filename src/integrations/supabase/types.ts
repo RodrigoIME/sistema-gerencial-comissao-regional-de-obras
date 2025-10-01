@@ -77,18 +77,21 @@ export type Database = {
       }
       organizacoes: {
         Row: {
+          endereco_completo: string | null
           id: number
           "Organização Militar": string
           "Órgão Setorial Responsável": string
           "Sigla da OM": string
         }
         Insert: {
+          endereco_completo?: string | null
           id?: number
           "Organização Militar": string
           "Órgão Setorial Responsável": string
           "Sigla da OM": string
         }
         Update: {
+          endereco_completo?: string | null
           id?: number
           "Organização Militar"?: string
           "Órgão Setorial Responsável"?: string

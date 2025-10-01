@@ -18,17 +18,14 @@ interface Organizacao {
   id: number;
   nome: string;
   diretoria: string;
+  endereco?: string;
 }
 
-const DIRETORIAS = [
-  { value: "COLOG", label: "Comando Logístico - COLOG" },
-  { value: "COTER", label: "Comando de Operações Terrestres - COTER" },
-  { value: "DCT", label: "Departamento de Ciência e Tecnologia - DCT" },
-  { value: "DEC", label: "Departamento de Engenharia e Construção - DEC" },
-  { value: "DECEx", label: "Departamento de Educação e Cultura do Exército - DECEx" },
-  { value: "DGP", label: "Departamento Geral do Pessoal - DGP" },
-  { value: "SEF", label: "Secretaria de Economia e Finanças - SEF" },
-];
+interface OrgaoSetorial {
+  id: number;
+  nome: string;
+  sigla: string;
+}
 
 const TIPOS_VISTORIA = [
   "Técnica Regular",
@@ -56,6 +53,7 @@ const NovaSolicitacao = () => {
   const [objetivoVistoria, setObjetivoVistoria] = useState("");
   const [tipoVistoria, setTipoVistoria] = useState("");
   const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
+  const [orgaosSetoriais, setOrgaosSetoriais] = useState<OrgaoSetorial[]>([]);
   const [files, setFiles] = useState<FileList | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -67,6 +65,7 @@ const NovaSolicitacao = () => {
 
   useEffect(() => {
     fetchOrganizacoes();
+    fetchOrgaosSetoriais();
   }, []);
 
   const fetchOrganizacoes = async () => {
@@ -85,9 +84,39 @@ const NovaSolicitacao = () => {
       id: org.id,
       nome: org["Organização Militar"],
       diretoria: org["Órgão Setorial Responsável"],
+      endereco: org.endereco_completo,
     }));
 
     setOrganizacoes(mappedData);
+  };
+
+  const fetchOrgaosSetoriais = async () => {
+    const { data, error } = await supabase
+      .from("Orgao_de_Direcao_Setorial")
+      .select("*")
+      .order("Nome_do_Orgao_de_Direcao_Setorial");
+
+    if (error) {
+      toast.error("Erro ao carregar órgãos setoriais");
+      return;
+    }
+
+    const mapped: OrgaoSetorial[] = (data || []).map((os: any) => ({
+      id: os.id,
+      nome: os["Nome_do_Orgao_de_Direcao_Setorial"],
+      sigla: os["Sigla_do_Orgao_de_Direcao_Setorial"],
+    }));
+
+    setOrgaosSetoriais(mapped);
+  };
+
+  // Pré-preencher endereço ao selecionar organização
+  const handleOrganizacaoChange = (orgId: string) => {
+    setOrganizacaoId(orgId);
+    const orgSelecionada = organizacoes.find((org) => org.id.toString() === orgId);
+    if (orgSelecionada?.endereco) {
+      setEnderecoCompleto(orgSelecionada.endereco);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,22 +240,23 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="diretoria">Diretoria Responsável</Label>
+              <Label htmlFor="diretoria">Órgão Setorial Responsável</Label>
               <Select 
                 value={diretoriaResponsavel} 
                 onValueChange={(value) => {
                   setDiretoriaResponsavel(value);
-                  setOrganizacaoId(""); // Limpar organização ao mudar diretoria
+                  setOrganizacaoId(""); // Limpar organização ao mudar órgão setorial
+                  setEnderecoCompleto(""); // Limpar endereço
                 }} 
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a diretoria" />
+                  <SelectValue placeholder="Selecione o órgão setorial" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DIRETORIAS.map((dir) => (
-                    <SelectItem key={dir.value} value={dir.value}>
-                      {dir.label}
+                  {orgaosSetoriais.map((os) => (
+                    <SelectItem key={os.id} value={os.sigla}>
+                      {os.sigla} - {os.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -237,7 +267,7 @@ const NovaSolicitacao = () => {
               <Label htmlFor="organizacao">Organização Militar Apoiada</Label>
               <Select 
                 value={organizacaoId} 
-                onValueChange={setOrganizacaoId} 
+                onValueChange={handleOrganizacaoChange} 
                 required
                 disabled={!diretoriaResponsavel}
               >
@@ -246,18 +276,37 @@ const NovaSolicitacao = () => {
                     placeholder={
                       diretoriaResponsavel 
                         ? "Selecione uma organização" 
-                        : "Selecione primeiro a diretoria"
+                        : "Selecione primeiro o órgão setorial"
                     } 
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {organizacoesFiltradas.map((org) => (
-                    <SelectItem key={org.id} value={org.id.toString()}>
-                      {org.nome}
+                  {organizacoesFiltradas.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      Nenhuma organização encontrada
                     </SelectItem>
-                  ))}
+                  ) : (
+                    organizacoesFiltradas.map((org) => (
+                      <SelectItem key={org.id} value={org.id.toString()}>
+                        {org.nome}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {diretoriaResponsavel && organizacoesFiltradas.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma organização cadastrada para este órgão.{" "}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-sm"
+                    onClick={() => navigate("/cadastros")}
+                  >
+                    Cadastre aqui
+                  </Button>
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -270,6 +319,9 @@ const NovaSolicitacao = () => {
                 required
                 className="min-h-[80px]"
               />
+              <p className="text-xs text-muted-foreground">
+                O endereço é pré-preenchido com o cadastro da OM, mas pode ser editado se a vistoria for em outro local
+              </p>
             </div>
 
             <div className="space-y-4">

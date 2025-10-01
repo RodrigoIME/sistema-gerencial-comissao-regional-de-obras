@@ -8,7 +8,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Solicitacoes from "./pages/Solicitacoes";
 import NovaSolicitacao from "./pages/NovaSolicitacao";
-import NovaOrganizacao from "./pages/NovaOrganizacao";
+import Cadastros from "./pages/Cadastros";
 import SolicitacaoDetalhes from "./pages/SolicitacaoDetalhes";
 import EditarSolicitacao from "./pages/EditarSolicitacao";
 import ImportarVistorias from "./pages/ImportarVistorias";
@@ -28,7 +28,7 @@ const App = () => (
         <Route path="/" element={<Dashboard />} />
         <Route path="/solicitacoes" element={<Solicitacoes />} />
         <Route path="/nova-solicitacao" element={<NovaSolicitacao />} />
-        <Route path="/nova-organizacao" element={<NovaOrganizacao />} />
+        <Route path="/cadastros" element={<Cadastros />} />
         <Route path="/solicitacao/:id" element={<SolicitacaoDetalhes />} />
         <Route path="/solicitacao/:id/editar" element={<EditarSolicitacao />} />
         <Route path="/importar-vistorias" element={<ImportarVistorias />} />

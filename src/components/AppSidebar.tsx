@@ -15,7 +15,7 @@ const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Solicitações", url: "/solicitacoes", icon: FileText },
   { title: "Nova Solicitação", url: "/nova-solicitacao", icon: Plus },
-  { title: "Nova Organização", url: "/nova-organizacao", icon: Building2 },
+  { title: "Cadastros", url: "/cadastros", icon: Building2 },
 ];
 
 export function AppSidebar() {
