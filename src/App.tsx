@@ -10,6 +10,7 @@ import Solicitacoes from "./pages/Solicitacoes";
 import NovaSolicitacao from "./pages/NovaSolicitacao";
 import NovaOrganizacao from "./pages/NovaOrganizacao";
 import SolicitacaoDetalhes from "./pages/SolicitacaoDetalhes";
+import EditarSolicitacao from "./pages/EditarSolicitacao";
 import ImportarVistorias from "./pages/ImportarVistorias";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
         <Route path="/nova-solicitacao" element={<NovaSolicitacao />} />
         <Route path="/nova-organizacao" element={<NovaOrganizacao />} />
         <Route path="/solicitacao/:id" element={<SolicitacaoDetalhes />} />
+        <Route path="/solicitacao/:id/editar" element={<EditarSolicitacao />} />
         <Route path="/importar-vistorias" element={<ImportarVistorias />} />
         <Route path="*" element={<NotFound />} />
           </Routes>
