@@ -26,6 +26,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,8 @@ export function AppSidebar() {
   const { isAdmin, hasModule, loading } = useUserRole(user);
   const location = useLocation();
   const currentPath = location.pathname;
+  const { state } = useSidebar();
+  const isCollapsedSidebar = state === "collapsed";
 
   useEffect(() => {
     // Buscar usuário atual
@@ -96,7 +99,10 @@ export function AppSidebar() {
 
         {/* MÓDULO VISTORIAS */}
         {hasModule('vistorias') && (
-          <Collapsible defaultOpen={isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])} className="group/collapsible">
+          <Collapsible 
+            open={isCollapsedSidebar || isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])} 
+            className="group/collapsible"
+          >
             <SidebarGroup>
               <SidebarGroupLabel asChild>
                 <CollapsibleTrigger className="flex items-center justify-between w-full">
@@ -160,26 +166,40 @@ export function AppSidebar() {
         {/* MÓDULO PROJETOS (Placeholder) */}
         {hasModule('projetos') && (
           <SidebarGroup>
-            <SidebarGroupLabel>
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-blue-500" />
-                <span>Projetos</span>
-                <Badge variant="secondary" className="text-xs">Em Breve</Badge>
-              </div>
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>Projetos</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton disabled>
+                    <Briefcase className="text-blue-500" />
+                    <span>Projetos</span>
+                    {!isCollapsedSidebar && (
+                      <Badge variant="secondary" className="text-xs ml-auto">Em Breve</Badge>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
           </SidebarGroup>
         )}
 
         {/* MÓDULO FISCALIZAÇÃO (Placeholder) */}
         {hasModule('fiscalizacao') && (
           <SidebarGroup>
-            <SidebarGroupLabel>
-              <div className="flex items-center gap-2">
-                <HardHat className="h-4 w-4 text-amber-500" />
-                <span>Fiscalização de Obras</span>
-                <Badge variant="secondary" className="text-xs">Em Breve</Badge>
-              </div>
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>Fiscalização</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton disabled>
+                    <HardHat className="text-amber-500" />
+                    <span>Fiscalização de Obras</span>
+                    {!isCollapsedSidebar && (
+                      <Badge variant="secondary" className="text-xs ml-auto">Em Breve</Badge>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
           </SidebarGroup>
         )}
 
