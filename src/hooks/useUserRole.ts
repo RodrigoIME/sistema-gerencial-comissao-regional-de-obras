@@ -20,6 +20,7 @@ export const useUserRole = (user: User | null): UserRoleData => {
 
   useEffect(() => {
     if (!user) {
+      console.log('[useUserRole] Nenhum usuário autenticado');
       setRoles([]);
       setModules([]);
       setLoading(false);
@@ -28,22 +29,43 @@ export const useUserRole = (user: User | null): UserRoleData => {
 
     const fetchUserData = async () => {
       try {
+        console.log('[useUserRole] Buscando dados para usuário:', user.id, user.email);
+        
         // Buscar roles
-        const { data: rolesData } = await supabase
+        const { data: rolesData, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id);
 
+        if (rolesError) {
+          console.error('[useUserRole] Erro ao buscar roles:', rolesError);
+        } else {
+          console.log('[useUserRole] Roles encontradas:', rolesData);
+        }
+
         // Buscar módulos
-        const { data: modulesData } = await supabase
+        const { data: modulesData, error: modulesError } = await supabase
           .from('user_modules')
           .select('module')
           .eq('user_id', user.id);
 
-        setRoles(rolesData?.map(r => r.role as AppRole) || []);
-        setModules(modulesData?.map(m => m.module as AppModule) || []);
+        if (modulesError) {
+          console.error('[useUserRole] Erro ao buscar módulos:', modulesError);
+        } else {
+          console.log('[useUserRole] Módulos encontrados:', modulesData);
+        }
+
+        const fetchedRoles = rolesData?.map(r => r.role as AppRole) || [];
+        const fetchedModules = modulesData?.map(m => m.module as AppModule) || [];
+        
+        console.log('[useUserRole] Roles processadas:', fetchedRoles);
+        console.log('[useUserRole] Módulos processados:', fetchedModules);
+        console.log('[useUserRole] É admin?', fetchedRoles.includes('admin'));
+
+        setRoles(fetchedRoles);
+        setModules(fetchedModules);
       } catch (error) {
-        console.error('Erro ao buscar dados do usuário:', error);
+        console.error('[useUserRole] Erro crítico ao buscar dados do usuário:', error);
       } finally {
         setLoading(false);
       }

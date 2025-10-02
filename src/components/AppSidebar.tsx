@@ -38,10 +38,25 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   useEffect(() => {
+    // Buscar usuário atual
     supabase.auth.getUser().then(({ data: { user } }) => {
+      console.log('[AppSidebar] Usuário carregado:', user?.email, user?.id);
       setUser(user);
     });
+
+    // Listener para mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[AppSidebar] Auth state changed:', _event, session?.user?.email);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Log do estado atual
+  useEffect(() => {
+    console.log('[AppSidebar] Estado atual - isAdmin:', isAdmin, 'hasModule vistorias:', hasModule('vistorias'), 'loading:', loading);
+  }, [isAdmin, hasModule, loading]);
 
   const isActive = (path: string) => currentPath === path;
   const isGroupActive = (paths: string[]) => paths.some(p => currentPath === p);
