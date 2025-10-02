@@ -44,7 +44,7 @@ interface SystemUser {
 const Admin = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [adminVerified, setAdminVerified] = useState(false);
+  const [adminVerified, setAdminVerified] = useState<boolean | null>(null);
   const { isAdmin, loading } = useUserRole(user);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [logs, setLogs] = useState<AdminLog[]>([]);
@@ -59,12 +59,14 @@ const Admin = () => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       console.log('[Admin] getUser result:', user?.email, user?.id);
       setUser(user);
+      setAdminVerified(null); // Reset ao mudar usuário
       setAuthChecked(true);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('[Admin] Auth state changed:', _event, session?.user?.email);
       setUser(session?.user ?? null);
+      setAdminVerified(null); // Reset ao mudar sessão
       setAuthChecked(true);
     });
 
@@ -91,9 +93,10 @@ const Admin = () => {
 
       if (error) {
         console.error('[Admin] Erro no RPC has_role:', error);
+        setAdminVerified(false);
       } else {
         console.log('[Admin] RPC has_role retornou:', data);
-        setAdminVerified(!!data);
+        setAdminVerified(data === true);
       }
     };
 
@@ -107,14 +110,14 @@ const Admin = () => {
 
   // Redirecionar se não for admin
   useEffect(() => {
-    if (!authChecked || loading) return;
+    if (!authChecked || loading || adminVerified === null) return;
     
-    if (user && !isAdmin && !adminVerified) {
+    if (user && adminVerified === false) {
       console.log('[Admin] Redirecionando - não é admin');
       toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
       navigate("/");
     }
-  }, [authChecked, user, isAdmin, adminVerified, loading, navigate]);
+  }, [authChecked, user, adminVerified, loading, navigate]);
 
   useEffect(() => {
     if (isAdmin || adminVerified) {
@@ -266,7 +269,7 @@ const Admin = () => {
     return names[module] || module;
   };
 
-  if (!authChecked || loading) {
+  if (!authChecked || loading || adminVerified === null) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -277,7 +280,7 @@ const Admin = () => {
     );
   }
 
-  if (!isAdmin && !adminVerified) {
+  if (adminVerified === false) {
     return null;
   }
 
