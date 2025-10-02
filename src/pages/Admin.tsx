@@ -43,6 +43,8 @@ interface SystemUser {
 
 const Admin = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [adminVerified, setAdminVerified] = useState(false);
   const { isAdmin, loading } = useUserRole(user);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [logs, setLogs] = useState<AdminLog[]>([]);
@@ -52,26 +54,75 @@ const Admin = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const navigate = useNavigate();
 
+  // Inicialização de autenticação
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
+      console.log('[Admin] getUser result:', user?.email, user?.id);
       setUser(user);
+      setAuthChecked(true);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[Admin] Auth state changed:', _event, session?.user?.email);
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  // Fallback: verificar admin via RPC se necessário
   useEffect(() => {
-    if (!loading && !isAdmin) {
+    if (!authChecked || !user || loading) return;
+
+    const verifyAdminAccess = async () => {
+      if (isAdmin) {
+        console.log('[Admin] isAdmin=true via useUserRole');
+        setAdminVerified(true);
+        return;
+      }
+
+      // Fallback: chamar has_role diretamente
+      console.log('[Admin] isAdmin=false, tentando fallback via RPC');
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+
+      if (error) {
+        console.error('[Admin] Erro no RPC has_role:', error);
+      } else {
+        console.log('[Admin] RPC has_role retornou:', data);
+        setAdminVerified(!!data);
+      }
+    };
+
+    verifyAdminAccess();
+  }, [authChecked, user, loading, isAdmin]);
+
+  // Log de estado atual
+  useEffect(() => {
+    console.log('[Admin] Estado - authChecked:', authChecked, 'user:', user?.id, 'loading:', loading, 'isAdmin:', isAdmin, 'adminVerified:', adminVerified);
+  }, [authChecked, user, loading, isAdmin, adminVerified]);
+
+  // Redirecionar se não for admin
+  useEffect(() => {
+    if (!authChecked || loading) return;
+    
+    if (user && !isAdmin && !adminVerified) {
+      console.log('[Admin] Redirecionando - não é admin');
       toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
       navigate("/");
     }
-  }, [isAdmin, loading, navigate]);
+  }, [authChecked, user, isAdmin, adminVerified, loading, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || adminVerified) {
       fetchRequests();
       fetchLogs();
       fetchUsers();
     }
-  }, [isAdmin]);
+  }, [isAdmin, adminVerified]);
 
   const fetchRequests = async () => {
     const { data, error } = await supabase
@@ -215,7 +266,7 @@ const Admin = () => {
     return names[module] || module;
   };
 
-  if (loading) {
+  if (!authChecked || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -226,7 +277,7 @@ const Admin = () => {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !adminVerified) {
     return null;
   }
 
@@ -240,7 +291,7 @@ const Admin = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="requests" className="space-y-4">
+      <Tabs defaultValue="logs" className="space-y-4">
         <TabsList>
           <TabsTrigger value="requests">
             <Clock className="h-4 w-4 mr-2" />
