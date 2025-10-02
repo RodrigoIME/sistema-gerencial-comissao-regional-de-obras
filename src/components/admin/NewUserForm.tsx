@@ -68,6 +68,11 @@ export const NewUserForm = ({ onSuccess }: NewUserFormProps) => {
       });
 
       if (error) throw error;
+      
+      // Verificar se há erro no data retornado
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       toast.success('Usuário criado com sucesso!');
       
