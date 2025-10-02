@@ -8,12 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, UserCheck, UserX, Clock, FileText, Upload } from "lucide-react";
+import { Shield, UserCheck, UserX, Clock, FileText, Upload, Users, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
+import { UsersList } from "@/components/admin/UsersList";
+import { NewUserForm } from "@/components/admin/NewUserForm";
+import { SystemLogs } from "@/components/admin/SystemLogs";
 
 interface RegistrationRequest {
   id: string;
@@ -31,11 +33,20 @@ interface AdminLog {
   details: any;
 }
 
+interface SystemUser {
+  id: string;
+  email: string;
+  created_at: string;
+  roles: string[];
+  modules: string[];
+}
+
 const Admin = () => {
   const [user, setUser] = useState<User | null>(null);
   const { isAdmin, loading } = useUserRole(user);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [users, setUsers] = useState<SystemUser[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -58,6 +69,7 @@ const Admin = () => {
     if (isAdmin) {
       fetchRequests();
       fetchLogs();
+      fetchUsers();
     }
   }, [isAdmin]);
 
@@ -81,7 +93,7 @@ const Admin = () => {
       .from('admin_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) {
       console.error('Erro ao buscar logs:', error);
@@ -90,9 +102,44 @@ const Admin = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      // Buscar usuários com suas roles e módulos
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) throw authError;
+
+      const usersData: SystemUser[] = [];
+
+      for (const authUser of authUsers.users) {
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', authUser.id);
+
+        const { data: modulesData } = await supabase
+          .from('user_modules')
+          .select('module')
+          .eq('user_id', authUser.id);
+
+        usersData.push({
+          id: authUser.id,
+          email: authUser.email || '',
+          created_at: authUser.created_at,
+          roles: rolesData?.map(r => r.role) || [],
+          modules: modulesData?.map(m => m.module) || [],
+        });
+      }
+
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      toast.error('Erro ao carregar usuários');
+    }
+  };
+
   const handleApprove = async (request: RegistrationRequest) => {
     try {
-      // Criar usuário via função edge
       const { data, error } = await supabase.functions.invoke('approve-user-registration', {
         body: {
           requestId: request.id,
@@ -105,7 +152,6 @@ const Admin = () => {
 
       if (error) throw error;
 
-      // Log da ação
       await supabase.from('admin_logs').insert({
         admin_id: user?.id,
         action: 'Aprovação de cadastro',
@@ -118,6 +164,7 @@ const Admin = () => {
       toast.success(`Cadastro de ${request.name} aprovado com sucesso!`);
       fetchRequests();
       fetchLogs();
+      fetchUsers();
     } catch (error: any) {
       console.error('Erro ao aprovar cadastro:', error);
       toast.error('Erro ao aprovar cadastro: ' + error.message);
@@ -138,7 +185,6 @@ const Admin = () => {
         })
         .eq('id', selectedRequest.id);
 
-      // Log da ação
       await supabase.from('admin_logs').insert({
         admin_id: user?.id,
         action: 'Rejeição de cadastro',
@@ -198,18 +244,26 @@ const Admin = () => {
         <TabsList>
           <TabsTrigger value="requests">
             <Clock className="h-4 w-4 mr-2" />
-            Solicitações de Cadastro
+            Solicitações
             {requests.length > 0 && (
               <Badge variant="destructive" className="ml-2">{requests.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="users">
+            <Users className="h-4 w-4 mr-2" />
+            Usuários
+          </TabsTrigger>
+          <TabsTrigger value="new-user">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Usuário
+          </TabsTrigger>
           <TabsTrigger value="logs">
             <FileText className="h-4 w-4 mr-2" />
-            Logs do Sistema
+            Logs
           </TabsTrigger>
           <TabsTrigger value="import">
             <Upload className="h-4 w-4 mr-2" />
-            Importar Dados
+            Importar
           </TabsTrigger>
         </TabsList>
 
@@ -251,10 +305,7 @@ const Admin = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleApprove(request)}
-                          className="gap-2"
-                        >
+                        <Button onClick={() => handleApprove(request)} className="gap-2">
                           <UserCheck className="h-4 w-4" />
                           Aprovar
                         </Button>
@@ -278,32 +329,19 @@ const Admin = () => {
           </div>
         </TabsContent>
 
+        <TabsContent value="users">
+          <UsersList users={users} onUpdate={fetchUsers} />
+        </TabsContent>
+
+        <TabsContent value="new-user">
+          <NewUserForm onSuccess={() => {
+            fetchUsers();
+            fetchLogs();
+          }} />
+        </TabsContent>
+
         <TabsContent value="logs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Ações</CardTitle>
-              <CardDescription>Últimas 50 ações administrativas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {logs.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium">{log.action}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                    {log.details && (
-                      <Badge variant="outline" className="ml-2">
-                        {log.details.email}
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <SystemLogs logs={logs} onRefresh={fetchLogs} />
         </TabsContent>
 
         <TabsContent value="import">

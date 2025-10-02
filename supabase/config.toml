@@ -2,3 +2,6 @@ project_id = "fcpnlyqplsfhobhwgoff"
 
 [functions.importar-vistorias]
 verify_jwt = false
+
+[functions.create-user-direct]
+verify_jwt = true
