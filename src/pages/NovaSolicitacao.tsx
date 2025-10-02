@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Upload, FileText, CalendarIcon } from "lucide-react";
+import { Upload, FileText, CalendarIcon, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -59,12 +59,13 @@ const NovaSolicitacao = () => {
   const [loading, setLoading] = useState(false);
   const [vistoriaNoEnderecoOM, setVistoriaNoEnderecoOM] = useState(true);
   const [enderecoOMOriginal, setEnderecoOMOriginal] = useState("");
+  const [searchOM, setSearchOM] = useState("");
   const navigate = useNavigate();
 
-  // Filtrar organizações baseado na diretoria selecionada
-  const organizacoesFiltradas = diretoriaResponsavel
-    ? organizacoes.filter((org) => org.diretoria === diretoriaResponsavel)
-    : [];
+  // Filtrar organizações por busca
+  const organizacoesFiltradas = organizacoes.filter((org) =>
+    org.nome.toLowerCase().includes(searchOM.toLowerCase())
+  );
 
   useEffect(() => {
     fetchOrganizacoes();
@@ -113,19 +114,25 @@ const NovaSolicitacao = () => {
     setOrgaosSetoriais(mapped);
   };
 
-  // Pré-preencher endereço ao selecionar organização
+  // Pré-preencher endereço e diretoria ao selecionar organização
   const handleOrganizacaoChange = (orgId: string) => {
     setOrganizacaoId(orgId);
     const orgSelecionada = organizacoes.find((org) => org.id.toString() === orgId);
     
-    if (orgSelecionada?.endereco) {
-      setEnderecoOMOriginal(orgSelecionada.endereco);
-      setEnderecoCompleto(orgSelecionada.endereco);
-      setVistoriaNoEnderecoOM(true);
-    } else {
-      setEnderecoOMOriginal("");
-      setEnderecoCompleto("");
-      setVistoriaNoEnderecoOM(true);
+    if (orgSelecionada) {
+      // Preencher automaticamente a diretoria
+      setDiretoriaResponsavel(orgSelecionada.diretoria);
+      
+      // Preencher endereço
+      if (orgSelecionada.endereco) {
+        setEnderecoOMOriginal(orgSelecionada.endereco);
+        setEnderecoCompleto(orgSelecionada.endereco);
+        setVistoriaNoEnderecoOM(true);
+      } else {
+        setEnderecoOMOriginal("");
+        setEnderecoCompleto("");
+        setVistoriaNoEnderecoOM(true);
+      }
     }
   };
 
@@ -257,49 +264,24 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="diretoria">Órgão Setorial Responsável</Label>
-              <Select 
-                value={diretoriaResponsavel} 
-                onValueChange={(value) => {
-                  setDiretoriaResponsavel(value);
-                  setOrganizacaoId("");
-                  setEnderecoCompleto("");
-                  setEnderecoOMOriginal("");
-                  setVistoriaNoEnderecoOM(true);
-                }}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o órgão setorial" />
-                </SelectTrigger>
-                <SelectContent>
-                  {orgaosSetoriais.map((os) => (
-                    <SelectItem key={os.id} value={os.sigla}>
-                      {os.sigla} - {os.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="organizacao">Organização Militar Apoiada</Label>
               <Select 
                 value={organizacaoId} 
                 onValueChange={handleOrganizacaoChange} 
                 required
-                disabled={!diretoriaResponsavel}
               >
                 <SelectTrigger>
-                  <SelectValue 
-                    placeholder={
-                      diretoriaResponsavel 
-                        ? "Selecione uma organização" 
-                        : "Selecione primeiro o órgão setorial"
-                    } 
-                  />
+                  <SelectValue placeholder="Selecione uma organização" />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="p-2">
+                    <Input 
+                      placeholder="Buscar organização..."
+                      value={searchOM}
+                      onChange={(e) => setSearchOM(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
                   {organizacoesFiltradas.length === 0 ? (
                     <SelectItem value="empty" disabled>
                       Nenhuma organização encontrada
@@ -313,20 +295,22 @@ const NovaSolicitacao = () => {
                   )}
                 </SelectContent>
               </Select>
-              {diretoriaResponsavel && organizacoesFiltradas.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma organização cadastrada para este órgão.{" "}
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="h-auto p-0 text-sm"
-                    onClick={() => navigate("/cadastros")}
-                  >
-                    Cadastre aqui
-                  </Button>
-                </p>
-              )}
             </div>
+
+            {organizacaoId && (
+              <div className="space-y-2">
+                <Label>Órgão Setorial Responsável</Label>
+                <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {diretoriaResponsavel}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    ✓ Preenchido automaticamente
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <Label>A vistoria será realizada no endereço da OM?</Label>

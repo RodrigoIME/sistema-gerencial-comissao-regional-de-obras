@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Plus, Building2 } from "lucide-react";
+import { FolderKanban, FileStack, BarChart3, FilePlus } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,12 +10,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Solicitações", url: "/solicitacoes", icon: FileText },
-  { title: "Nova Solicitação", url: "/nova-solicitacao", icon: Plus },
-  { title: "Cadastros", url: "/cadastros", icon: Building2 },
+  { title: "Cadastros", url: "/cadastros", icon: FolderKanban, color: "text-blue-500" },
+  { title: "Solicitações", url: "/solicitacoes", icon: FileStack, color: "text-purple-500" },
+  { title: "Dashboard", url: "/", icon: BarChart3, color: "text-emerald-500" },
+  { title: "Nova Solicitação", url: "/nova-solicitacao", icon: FilePlus, color: "text-orange-500" },
 ];
 
 export function AppSidebar() {
@@ -35,7 +36,11 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end>
-                      <item.icon />
+                      <item.icon className={cn(
+                        item.color,
+                        "transition-all",
+                        isActive(item.url) && "drop-shadow-md"
+                      )} />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
