@@ -45,13 +45,13 @@ serve(async (req) => {
       );
     }
 
-    // Verificar se é admin
-    const { data: roles, error: roleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
+    // Verificar se é admin usando RPC
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
 
-    if (roleError || !roles?.some(r => r.role === 'admin')) {
+    if (roleError || !isAdmin) {
       console.error('Not admin:', roleError);
       return new Response(
         JSON.stringify({ error: 'Acesso negado. Apenas administradores podem criar usuários.' }),
