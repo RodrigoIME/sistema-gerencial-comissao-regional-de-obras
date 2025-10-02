@@ -60,6 +60,53 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verificar autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('[importar-vistorias] Requisição sem token de autenticação');
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Obter usuário do token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error('[importar-vistorias] Token inválido:', userError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Token inválido' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Verificar se o usuário é admin
+    const { data: isAdmin, error: roleError } = await supabase
+      .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+
+    if (roleError || !isAdmin) {
+      console.error('[importar-vistorias] Acesso negado para usuário:', user.email, 'isAdmin:', isAdmin, 'error:', roleError?.message);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Acesso negado. Apenas administradores podem importar dados.' 
+        }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('[importar-vistorias] Importação iniciada por admin:', user.email);
+
     const { data } = await req.json();
 
     if (!data || !Array.isArray(data)) {
@@ -195,6 +242,24 @@ Deno.serve(async (req) => {
     if (errors.length > 0) {
       console.log(`Erros encontrados: ${errors.length}`);
       console.log(errors.join('\n'));
+    }
+
+    // Registrar auditoria da importação
+    const { error: logError } = await supabase
+      .from('admin_logs')
+      .insert({
+        admin_id: user.id,
+        action: 'import_vistorias',
+        details: {
+          imported_count: importedCount,
+          total_rows: data.length,
+          errors_count: errors.length,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    if (logError) {
+      console.error('[importar-vistorias] Erro ao registrar log:', logError);
     }
 
     return new Response(

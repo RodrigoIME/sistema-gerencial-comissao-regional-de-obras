@@ -8,14 +8,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, UserCheck, UserX, Clock, FileText, Upload, Users, UserPlus } from "lucide-react";
+import { Shield, UserCheck, UserX, Clock, FileText, Upload, Users, UserPlus, FileSpreadsheet, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UsersList } from "@/components/admin/UsersList";
 import { NewUserForm } from "@/components/admin/NewUserForm";
 import { SystemLogs } from "@/components/admin/SystemLogs";
+import * as XLSX from 'xlsx';
 
 interface RegistrationRequest {
   id: string;
@@ -52,6 +56,12 @@ const Admin = () => {
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  
+  // Estados para importação
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState("");
+  
   const navigate = useNavigate();
 
   // Inicialização de autenticação
@@ -269,6 +279,100 @@ const Admin = () => {
     return names[module] || module;
   };
 
+  // Handlers para importação
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (
+        selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        selectedFile.type === "application/vnd.ms-excel"
+      ) {
+        setImportFile(selectedFile);
+      } else {
+        toast.error("Por favor, selecione um arquivo Excel (.xlsx ou .xls)");
+      }
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      toast.error("Por favor, selecione um arquivo");
+      return;
+    }
+
+    setImportLoading(true);
+    setImportProgress("Lendo arquivo...");
+
+    try {
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(importFile);
+      
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data) {
+            throw new Error("Erro ao ler arquivo");
+          }
+
+          setImportProgress("Processando Excel...");
+          
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          console.log(`Total de linhas no arquivo: ${jsonData.length}`);
+          
+          setImportProgress("Importando dados...");
+          
+          const { data: result, error } = await supabase.functions.invoke("importar-vistorias", {
+            body: {
+              data: jsonData
+            }
+          });
+
+          if (error) throw error;
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          setImportProgress("Importação concluída!");
+          toast.success(`Importação concluída! ${result.imported} de ${result.total} registros importados.`);
+          
+          if (result.errors && result.errors.length > 0) {
+            console.warn("Erros durante importação:", result.errors);
+            toast.warning(`Alguns registros apresentaram erros. Verifique o console para detalhes.`);
+          }
+          
+          // Limpar o formulário
+          setImportFile(null);
+          setImportProgress("");
+          
+          // Recarregar logs para mostrar a auditoria
+          fetchLogs();
+        } catch (err: any) {
+          console.error("Erro ao processar:", err);
+          toast.error(err.message || "Erro ao processar o arquivo");
+          setImportProgress("");
+        } finally {
+          setImportLoading(false);
+        }
+      };
+
+      reader.onerror = () => {
+        toast.error("Erro ao ler o arquivo");
+        setImportLoading(false);
+        setImportProgress("");
+      };
+    } catch (error: any) {
+      console.error("Erro na importação:", error);
+      toast.error(error.message || "Erro ao importar dados");
+      setImportLoading(false);
+      setImportProgress("");
+    }
+  };
+
   if (!authChecked || loading || adminVerified === null) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -401,13 +505,63 @@ const Admin = () => {
         <TabsContent value="import">
           <Card>
             <CardHeader>
-              <CardTitle>Importar Vistorias</CardTitle>
-              <CardDescription>Importe dados de vistorias em lote</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-6 w-6" />
+                Importar Dados de Vistorias
+              </CardTitle>
+              <CardDescription>
+                Faça upload do arquivo Excel com os dados de acompanhamento de vistorias técnicas
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/importar-vistorias")} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Ir para Importação
+            <CardContent className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  O arquivo deve conter as seguintes colunas:
+                  <ul className="list-disc list-inside mt-2 text-sm">
+                    <li>OBJETO DE VISTORIA</li>
+                    <li>OM APOIADA</li>
+                    <li>Diretoria Responsável</li>
+                    <li>Classificação da Urgência</li>
+                    <li>Situação</li>
+                    <li>ORIGEM DA SOLICITAÇÃO</li>
+                    <li>DATA DA SOLICITAÇÃO</li>
+                    <li>REFERÊNCIA OPUS</li>
+                    <li>OBJETIVO</li>
+                    <li>OBSERVAÇÕES</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="file">Arquivo Excel</Label>
+                <Input
+                  id="file"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  disabled={importLoading}
+                />
+                {importFile && (
+                  <p className="text-sm text-muted-foreground">
+                    Arquivo selecionado: {importFile.name}
+                  </p>
+                )}
+              </div>
+
+              {importProgress && (
+                <Alert>
+                  <AlertDescription>{importProgress}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                onClick={handleImport}
+                disabled={!importFile || importLoading}
+                className="w-full"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {importLoading ? "Importando..." : "Importar Dados"}
               </Button>
             </CardContent>
           </Card>
