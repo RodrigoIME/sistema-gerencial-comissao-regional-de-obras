@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 interface Organizacao {
   id: number;
   nome: string;
+  sigla: string;
   diretoria: string;
   endereco?: string;
 }
@@ -46,6 +47,7 @@ const NovaSolicitacao = () => {
   const [contatoTelefone, setContatoTelefone] = useState("");
   const [contatoEmail, setContatoEmail] = useState("");
   const [diretoriaResponsavel, setDiretoriaResponsavel] = useState("");
+  const [siglaDaOM, setSiglaDaOM] = useState("");
   const [dataSolicitacao, setDataSolicitacao] = useState(new Date());
   const [classificacaoUrgencia, setClassificacaoUrgencia] = useState("");
   const [documentoOrigemDados, setDocumentoOrigemDados] = useState("");
@@ -64,7 +66,8 @@ const NovaSolicitacao = () => {
 
   // Filtrar organizações por busca
   const organizacoesFiltradas = organizacoes.filter((org) =>
-    org.nome.toLowerCase().includes(searchOM.toLowerCase())
+    org.nome.toLowerCase().includes(searchOM.toLowerCase()) ||
+    org.sigla.toLowerCase().includes(searchOM.toLowerCase())
   );
 
   useEffect(() => {
@@ -87,6 +90,7 @@ const NovaSolicitacao = () => {
     const mappedData: Organizacao[] = (data || []).map((org: any) => ({
       id: org.id,
       nome: org["Organização Militar"],
+      sigla: org["Sigla da OM"],
       diretoria: org["Órgão Setorial Responsável"],
       endereco: org.endereco_completo,
     }));
@@ -114,12 +118,15 @@ const NovaSolicitacao = () => {
     setOrgaosSetoriais(mapped);
   };
 
-  // Pré-preencher endereço e diretoria ao selecionar organização
+  // Pré-preencher endereço, diretoria e sigla ao selecionar organização
   const handleOrganizacaoChange = (orgId: string) => {
     setOrganizacaoId(orgId);
     const orgSelecionada = organizacoes.find((org) => org.id.toString() === orgId);
     
     if (orgSelecionada) {
+      // Preencher automaticamente a sigla
+      setSiglaDaOM(orgSelecionada.sigla);
+      
       // Preencher automaticamente a diretoria
       setDiretoriaResponsavel(orgSelecionada.diretoria);
       
@@ -289,7 +296,12 @@ const NovaSolicitacao = () => {
                   ) : (
                     organizacoesFiltradas.map((org) => (
                       <SelectItem key={org.id} value={org.id.toString()}>
-                        {org.nome}
+                        <div className="flex items-center justify-between gap-3 w-full">
+                          <span className="font-medium truncate flex-1">{org.nome}</span>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono shrink-0">
+                            {org.sigla}
+                          </span>
+                        </div>
                       </SelectItem>
                     ))
                   )}
@@ -298,18 +310,33 @@ const NovaSolicitacao = () => {
             </div>
 
             {organizacaoId && (
-              <div className="space-y-2">
-                <Label>Órgão Setorial Responsável</Label>
-                <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {diretoriaResponsavel}
-                  </span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    ✓ Preenchido automaticamente
-                  </span>
+              <>
+                <div className="space-y-2">
+                  <Label>Sigla da Organização Militar</Label>
+                  <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium font-mono">
+                      {siglaDaOM}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      ✓ Preenchido automaticamente
+                    </span>
+                  </div>
                 </div>
-              </div>
+
+                <div className="space-y-2">
+                  <Label>Órgão Setorial Responsável</Label>
+                  <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      {diretoriaResponsavel}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      ✓ Preenchido automaticamente
+                    </span>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="space-y-3">
