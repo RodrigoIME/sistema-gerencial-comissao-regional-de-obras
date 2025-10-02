@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Upload, FileText, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
@@ -56,6 +57,8 @@ const NovaSolicitacao = () => {
   const [orgaosSetoriais, setOrgaosSetoriais] = useState<OrgaoSetorial[]>([]);
   const [files, setFiles] = useState<FileList | null>(null);
   const [loading, setLoading] = useState(false);
+  const [vistoriaNoEnderecoOM, setVistoriaNoEnderecoOM] = useState(true);
+  const [enderecoOMOriginal, setEnderecoOMOriginal] = useState("");
   const navigate = useNavigate();
 
   // Filtrar organizações baseado na diretoria selecionada
@@ -114,8 +117,15 @@ const NovaSolicitacao = () => {
   const handleOrganizacaoChange = (orgId: string) => {
     setOrganizacaoId(orgId);
     const orgSelecionada = organizacoes.find((org) => org.id.toString() === orgId);
+    
     if (orgSelecionada?.endereco) {
+      setEnderecoOMOriginal(orgSelecionada.endereco);
       setEnderecoCompleto(orgSelecionada.endereco);
+      setVistoriaNoEnderecoOM(true);
+    } else {
+      setEnderecoOMOriginal("");
+      setEnderecoCompleto("");
+      setVistoriaNoEnderecoOM(true);
     }
   };
 
@@ -124,6 +134,13 @@ const NovaSolicitacao = () => {
     setLoading(true);
 
     try {
+      // Validar endereço
+      if (!enderecoCompleto || enderecoCompleto.trim() === "") {
+        toast.error("Por favor, informe o endereço onde será realizada a vistoria");
+        setLoading(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -245,9 +262,11 @@ const NovaSolicitacao = () => {
                 value={diretoriaResponsavel} 
                 onValueChange={(value) => {
                   setDiretoriaResponsavel(value);
-                  setOrganizacaoId(""); // Limpar organização ao mudar órgão setorial
-                  setEnderecoCompleto(""); // Limpar endereço
-                }} 
+                  setOrganizacaoId("");
+                  setEnderecoCompleto("");
+                  setEnderecoOMOriginal("");
+                  setVistoriaNoEnderecoOM(true);
+                }}
                 required
               >
                 <SelectTrigger>
@@ -309,20 +328,72 @@ const NovaSolicitacao = () => {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endereco">Endereço Completo de onde Será Realizada a Vistoria</Label>
-              <Textarea
-                id="endereco"
-                placeholder="Endereço completo..."
-                value={enderecoCompleto}
-                onChange={(e) => setEnderecoCompleto(e.target.value)}
-                required
-                className="min-h-[80px]"
-              />
-              <p className="text-xs text-muted-foreground">
-                O endereço é pré-preenchido com o cadastro da OM, mas pode ser editado se a vistoria for em outro local
-              </p>
+            <div className="space-y-3">
+              <Label>A vistoria será realizada no endereço da OM?</Label>
+              <RadioGroup
+                value={vistoriaNoEnderecoOM ? "sim" : "nao"}
+                onValueChange={(value) => {
+                  const novoValor = value === "sim";
+                  setVistoriaNoEnderecoOM(novoValor);
+                  
+                  if (novoValor) {
+                    setEnderecoCompleto(enderecoOMOriginal);
+                  } else {
+                    setEnderecoCompleto("");
+                  }
+                }}
+                disabled={!organizacaoId}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="sim" id="endereco-sim" />
+                  <Label htmlFor="endereco-sim" className="font-normal cursor-pointer">
+                    Sim, no endereço cadastrado da OM
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="nao" id="endereco-nao" />
+                  <Label htmlFor="endereco-nao" className="font-normal cursor-pointer">
+                    Não, em outro local
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
+
+            {vistoriaNoEnderecoOM && organizacaoId && (
+              <div className="space-y-2">
+                <Label htmlFor="endereco">Endereço da Vistoria</Label>
+                <div className="bg-muted p-4 rounded-lg border border-border">
+                  <p className="text-sm font-medium text-foreground">
+                    {enderecoOMOriginal || "Endereço não cadastrado"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    📍 Endereço cadastrado da Organização Militar
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!vistoriaNoEnderecoOM && organizacaoId && (
+              <div className="space-y-2">
+                <Label htmlFor="endereco-alternativo">
+                  Endereço Completo onde Será Realizada a Vistoria
+                </Label>
+                <Textarea
+                  id="endereco-alternativo"
+                  placeholder="Digite o endereço completo onde será realizada a vistoria..."
+                  value={enderecoCompleto}
+                  onChange={(e) => setEnderecoCompleto(e.target.value)}
+                  required
+                  className="min-h-[80px]"
+                />
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="text-amber-500">⚠️</span>
+                  <p>
+                    Atenção: A vistoria será realizada em endereço diferente do cadastrado na OM
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               <Label>Contato do Responsável na OM Apoiada</Label>
