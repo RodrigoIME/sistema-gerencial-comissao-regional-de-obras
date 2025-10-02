@@ -39,6 +39,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const { state } = useSidebar();
   const isCollapsedSidebar = state === "collapsed";
+  const [vistoriasOpen, setVistoriasOpen] = useState(true);
 
   useEffect(() => {
     // Buscar usuário atual
@@ -100,7 +101,8 @@ export function AppSidebar() {
         {/* MÓDULO VISTORIAS */}
         {hasModule('vistorias') && (
           <Collapsible 
-            open={isCollapsedSidebar || isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])} 
+            open={isCollapsedSidebar || vistoriasOpen || isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])} 
+            onOpenChange={setVistoriasOpen}
             className="group/collapsible"
           >
             <SidebarGroup>
