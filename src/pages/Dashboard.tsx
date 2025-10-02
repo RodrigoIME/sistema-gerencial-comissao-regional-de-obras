@@ -236,13 +236,18 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h2>
-        <p className="text-muted-foreground">
-          Visão geral do sistema de inspeções com filtros e análises
-        </p>
-      </div>
+    <div 
+      className="min-h-[calc(100vh-8rem)] bg-cover bg-center bg-no-repeat relative -m-6 p-6"
+      style={{ backgroundImage: 'url(/dashboard-bg.jpg)' }}
+    >
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-sm" />
+      <div className="relative z-10 space-y-8 animate-fade-in">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h2>
+          <p className="text-muted-foreground">
+            Visão geral do sistema de inspeções com filtros e análises
+          </p>
+        </div>
 
       {/* Filtros */}
       <Card className="border-0 shadow-lg">
@@ -432,6 +437,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

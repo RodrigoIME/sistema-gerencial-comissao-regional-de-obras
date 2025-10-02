@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { useUserRole } from "@/hooks/useUserRole";
+import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Search, Upload, AlertCircle, X } from "lucide-react";
+import { Eye, Search, Upload, AlertCircle, X, FileDown, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { format, subDays, subMonths, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,12 +22,14 @@ interface Solicitacao {
   organizacao_id: number;
   classificacao_urgencia: string | null;
   organizacoes?: {
-    nome: string;
-    diretoria: string;
+    'Organização Militar': string;
+    'Órgão Setorial Responsável': string;
   };
 }
 
 const Solicitacoes = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const { isAdmin } = useUserRole(user);
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
   const [filteredSolicitacoes, setFilteredSolicitacoes] = useState<Solicitacao[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +39,12 @@ const Solicitacoes = () => {
   const [sortBy, setSortBy] = useState("data-desc");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
 
   useEffect(() => {
     fetchSolicitacoes();
@@ -47,7 +58,7 @@ const Solicitacoes = () => {
       filtered = filtered.filter(
         (s) =>
           s.objeto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.organizacoes?.nome.toLowerCase().includes(searchTerm.toLowerCase())
+          s.organizacoes?.['Organização Militar']?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -128,8 +139,8 @@ const Solicitacoes = () => {
       const mappedData = (data || []).map((sol: any) => ({
         ...sol,
         organizacoes: sol.organizacoes ? {
-          nome: sol.organizacoes["Organização Militar"],
-          diretoria: sol.organizacoes["Órgão Setorial Responsável"],
+          'Organização Militar': sol.organizacoes["Organização Militar"],
+          'Órgão Setorial Responsável': sol.organizacoes["Órgão Setorial Responsável"],
         } : undefined,
       }));
       
@@ -189,6 +200,16 @@ const Solicitacoes = () => {
     sortBy !== "data-desc",
   ].filter(Boolean).length;
 
+  const handleExportExcel = () => {
+    exportToExcel(filteredSolicitacoes, 'vistorias');
+    toast.success('Arquivo Excel gerado com sucesso!');
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF(filteredSolicitacoes, 'vistorias');
+    toast.success('Arquivo PDF gerado com sucesso!');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -206,13 +227,25 @@ const Solicitacoes = () => {
             Gerencie todas as solicitações de inspeção
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/importar-vistorias")}
-          className="gap-2"
-        >
-          <Upload className="h-4 w-4" />
-          Importar Vistorias
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel} className="gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            Baixar Excel
+          </Button>
+          <Button variant="outline" onClick={handleExportPDF} className="gap-2">
+            <FileDown className="h-4 w-4" />
+            Baixar PDF
+          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => navigate("/importar-vistorias")}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Importar Vistorias
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="border-0 shadow-lg">
@@ -327,8 +360,8 @@ const Solicitacoes = () => {
                     </div>
                     {solicitacao.organizacoes && (
                       <div className="text-sm text-muted-foreground">
-                        <p className="font-medium">{solicitacao.organizacoes.nome}</p>
-                        <p>{solicitacao.organizacoes.diretoria}</p>
+                        <p className="font-medium">{solicitacao.organizacoes['Organização Militar']}</p>
+                        <p>{solicitacao.organizacoes['Órgão Setorial Responsável']}</p>
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground">
