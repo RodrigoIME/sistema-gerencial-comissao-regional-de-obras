@@ -12,6 +12,7 @@ import Cadastros from "./pages/Cadastros";
 import SolicitacaoDetalhes from "./pages/SolicitacaoDetalhes";
 import EditarSolicitacao from "./pages/EditarSolicitacao";
 import Admin from "./pages/Admin";
+import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
         <Route path="/solicitacao/:id" element={<SolicitacaoDetalhes />} />
         <Route path="/solicitacao/:id/editar" element={<EditarSolicitacao />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/configuracoes" element={<Configuracoes />} />
         <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
