@@ -1,0 +1,43 @@
+const DRAFT_KEY = 'novaSolicitacaoDraft';
+const DRAFT_TIMESTAMP_KEY = 'novaSolicitacaoDraftTimestamp';
+
+export const salvarRascunho = (data: any): void => {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+    localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
+  } catch (error) {
+    console.error('Erro ao salvar rascunho:', error);
+  }
+};
+
+export const carregarRascunho = (): { data: any; timestamp: string } | null => {
+  try {
+    const draft = localStorage.getItem(DRAFT_KEY);
+    const timestamp = localStorage.getItem(DRAFT_TIMESTAMP_KEY);
+    
+    if (draft && timestamp) {
+      return {
+        data: JSON.parse(draft),
+        timestamp
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erro ao carregar rascunho:', error);
+    return null;
+  }
+};
+
+export const limparRascunho = (): void => {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+  } catch (error) {
+    console.error('Erro ao limpar rascunho:', error);
+  }
+};
+
+export const temRascunho = (): boolean => {
+  return localStorage.getItem(DRAFT_KEY) !== null;
+};

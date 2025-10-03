@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +12,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Upload, FileText, CalendarIcon, Building2 } from "lucide-react";
+import { CalendarIcon, Building2, Info, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { novaSolicitacaoSchema, NovaSolicitacaoFormData, validarArquivo } from "@/lib/formValidation";
+import { formatarTelefone } from "@/lib/phoneFormatter";
+import { buscarEnderecoPorCEP, formatarCEP } from "@/lib/cepService";
+import { TEMPLATES_OBJETIVO } from "@/lib/vistoriaTemplates";
+import { salvarRascunho, carregarRascunho, limparRascunho, temRascunho } from "@/lib/draftStorage";
+import { RequiredLabel } from "@/components/forms/RequiredLabel";
+import { FileUploadZone } from "@/components/forms/FileUploadZone";
 
 interface Organizacao {
   id: number;
@@ -21,12 +31,6 @@ interface Organizacao {
   sigla: string;
   diretoria: string;
   endereco?: string;
-}
-
-interface OrgaoSetorial {
-  id: number;
-  nome: string;
-  sigla: string;
 }
 
 const TIPOS_VISTORIA = [
@@ -40,29 +44,40 @@ const TIPOS_VISTORIA = [
 ];
 
 const NovaSolicitacao = () => {
-  const [objeto, setObjeto] = useState("");
-  const [organizacaoId, setOrganizacaoId] = useState("");
-  const [enderecoCompleto, setEnderecoCompleto] = useState("");
-  const [contatoNome, setContatoNome] = useState("");
-  const [contatoTelefone, setContatoTelefone] = useState("");
-  const [contatoEmail, setContatoEmail] = useState("");
-  const [diretoriaResponsavel, setDiretoriaResponsavel] = useState("");
-  const [siglaDaOM, setSiglaDaOM] = useState("");
-  const [dataSolicitacao, setDataSolicitacao] = useState(new Date());
-  const [classificacaoUrgencia, setClassificacaoUrgencia] = useState("");
-  const [documentoOrigemDados, setDocumentoOrigemDados] = useState("");
-  const [documentoOrigemFile, setDocumentoOrigemFile] = useState<File | null>(null);
-  const [numeroReferenciaOpous, setNumeroReferenciaOpous] = useState("");
-  const [objetivoVistoria, setObjetivoVistoria] = useState("");
-  const [tipoVistoria, setTipoVistoria] = useState("");
+  const navigate = useNavigate();
   const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
-  const [orgaosSetoriais, setOrgaosSetoriais] = useState<OrgaoSetorial[]>([]);
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [documentoOrigemFile, setDocumentoOrigemFile] = useState<File | null>(null);
+  const [documentoFileError, setDocumentoFileError] = useState<string>("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [filesError, setFilesError] = useState<string>("");
   const [vistoriaNoEnderecoOM, setVistoriaNoEnderecoOM] = useState(true);
   const [enderecoOMOriginal, setEnderecoOMOriginal] = useState("");
   const [searchOM, setSearchOM] = useState("");
-  const navigate = useNavigate();
+  const [cep, setCep] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [siglaDaOM, setSiglaDaOM] = useState("");
+  const [diretoriaResponsavel, setDiretoriaResponsavel] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting }
+  } = useForm<NovaSolicitacaoFormData>({
+    resolver: zodResolver(novaSolicitacaoSchema),
+    defaultValues: {
+      dataSolicitacao: new Date(),
+      classificacaoUrgencia: "Não Prioritário",
+    }
+  });
+
+  const watchedFields = watch();
+  const classificacaoUrgencia = watch("classificacaoUrgencia");
+  const tipoVistoria = watch("tipoVistoria");
+  const organizacaoId = watch("organizacaoId");
 
   // Filtrar organizações por busca
   const organizacoesFiltradas = organizacoes.filter((org) =>
@@ -72,8 +87,46 @@ const NovaSolicitacao = () => {
 
   useEffect(() => {
     fetchOrganizacoes();
-    fetchOrgaosSetoriais();
   }, []);
+
+  // Carregar rascunho ao montar
+  useEffect(() => {
+    if (temRascunho()) {
+      const rascunho = carregarRascunho();
+      if (rascunho) {
+        Object.keys(rascunho.data).forEach((key) => {
+          if (key === 'dataSolicitacao') {
+            setValue(key as any, new Date(rascunho.data[key]));
+          } else {
+            setValue(key as any, rascunho.data[key]);
+          }
+        });
+        toast.info("Rascunho recuperado automaticamente");
+      }
+    }
+  }, [setValue]);
+
+  // Salvamento automático de rascunho
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (Object.keys(watchedFields).length > 0) {
+        salvarRascunho(watchedFields);
+      }
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [watchedFields]);
+
+  // Template de objetivo ao selecionar tipo de vistoria
+  useEffect(() => {
+    if (tipoVistoria && !watch("objetivoVistoria")) {
+      const template = TEMPLATES_OBJETIVO[tipoVistoria];
+      if (template) {
+        setValue("objetivoVistoria", template);
+        toast.info("Template de objetivo inserido. Você pode editá-lo.");
+      }
+    }
+  }, [tipoVistoria, setValue, watch]);
 
   const fetchOrganizacoes = async () => {
     const { data, error } = await supabase
@@ -86,7 +139,6 @@ const NovaSolicitacao = () => {
       return;
     }
 
-    // Mapear os dados do Supabase para a interface esperada
     const mappedData: Organizacao[] = (data || []).map((org: any) => ({
       id: org.id,
       nome: org["Organização Militar"],
@@ -98,63 +150,109 @@ const NovaSolicitacao = () => {
     setOrganizacoes(mappedData);
   };
 
-  const fetchOrgaosSetoriais = async () => {
-    const { data, error } = await supabase
-      .from("Orgao_de_Direcao_Setorial")
-      .select("*")
-      .order("Nome_do_Orgao_de_Direcao_Setorial");
-
-    if (error) {
-      toast.error("Erro ao carregar órgãos setoriais");
-      return;
-    }
-
-    const mapped: OrgaoSetorial[] = (data || []).map((os: any) => ({
-      id: os.id,
-      nome: os["Nome_do_Orgao_de_Direcao_Setorial"],
-      sigla: os["Sigla_do_Orgao_de_Direcao_Setorial"],
-    }));
-
-    setOrgaosSetoriais(mapped);
-  };
-
-  // Pré-preencher endereço, diretoria e sigla ao selecionar organização
   const handleOrganizacaoChange = (orgId: string) => {
-    setOrganizacaoId(orgId);
+    setValue("organizacaoId", orgId);
     const orgSelecionada = organizacoes.find((org) => org.id.toString() === orgId);
     
     if (orgSelecionada) {
-      // Preencher automaticamente a sigla
       setSiglaDaOM(orgSelecionada.sigla);
-      
-      // Preencher automaticamente a diretoria
       setDiretoriaResponsavel(orgSelecionada.diretoria);
       
-      // Preencher endereço
       if (orgSelecionada.endereco) {
         setEnderecoOMOriginal(orgSelecionada.endereco);
-        setEnderecoCompleto(orgSelecionada.endereco);
+        setValue("enderecoCompleto", orgSelecionada.endereco);
         setVistoriaNoEnderecoOM(true);
       } else {
         setEnderecoOMOriginal("");
-        setEnderecoCompleto("");
+        setValue("enderecoCompleto", "");
         setVistoriaNoEnderecoOM(true);
       }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleCepChange = (value: string) => {
+    const formatted = formatarCEP(value);
+    setCep(formatted);
+  };
 
-    try {
-      // Validar endereço
-      if (!enderecoCompleto || enderecoCompleto.trim() === "") {
-        toast.error("Por favor, informe o endereço onde será realizada a vistoria");
-        setLoading(false);
-        return;
+  const handleCepBlur = async () => {
+    if (cep.replace(/\D/g, '').length === 8) {
+      setBuscandoCep(true);
+      try {
+        const endereco = await buscarEnderecoPorCEP(cep);
+        if (endereco) {
+          const enderecoCompleto = `${endereco.logradouro}, ${endereco.bairro}, ${endereco.localidade} - ${endereco.uf}`;
+          setValue("enderecoCompleto", enderecoCompleto);
+          toast.success("Endereço encontrado!");
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Erro ao buscar CEP");
+      } finally {
+        setBuscandoCep(false);
       }
+    }
+  };
 
+  const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatarTelefone(e.target.value);
+    setValue("contatoTelefone", formatted);
+  };
+
+  const handleDocumentoFileChange = (file: File | null) => {
+    if (file) {
+      const validation = validarArquivo(file);
+      if (validation.valid) {
+        setDocumentoOrigemFile(file);
+        setDocumentoFileError("");
+      } else {
+        setDocumentoOrigemFile(null);
+        setDocumentoFileError(validation.error || "");
+        toast.error(validation.error);
+      }
+    } else {
+      setDocumentoOrigemFile(null);
+      setDocumentoFileError("");
+    }
+  };
+
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    const validFiles: File[] = [];
+    let hasError = false;
+
+    for (const file of selectedFiles) {
+      const validation = validarArquivo(file);
+      if (validation.valid) {
+        validFiles.push(file);
+      } else {
+        hasError = true;
+        toast.error(`${file.name}: ${validation.error}`);
+      }
+    }
+
+    if (hasError) {
+      setFilesError("Alguns arquivos foram rejeitados");
+    } else {
+      setFilesError("");
+    }
+
+    setFiles(validFiles);
+  };
+
+  const onSubmit = async (data: NovaSolicitacaoFormData) => {
+    // Validar endereço
+    if (!data.enderecoCompleto || data.enderecoCompleto.trim() === "") {
+      toast.error("Por favor, informe o endereço onde será realizada a vistoria");
+      return;
+    }
+
+    setShowConfirmDialog(true);
+  };
+
+  const confirmarEnvio = async () => {
+    const data = watchedFields;
+    
+    try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -184,31 +282,32 @@ const NovaSolicitacao = () => {
       const { data: solicitacao, error: solicitacaoError } = await supabase
         .from("solicitacoes")
         .insert({
-          objeto,
-          organizacao_id: parseInt(organizacaoId),
+          objeto: data.objeto,
+          organizacao_id: parseInt(data.organizacaoId),
           usuario_id: user.id,
           status: "pending",
-          endereco_completo: enderecoCompleto,
-          contato_nome: contatoNome,
-          contato_telefone: contatoTelefone,
-          contato_email: contatoEmail,
+          endereco_completo: data.enderecoCompleto,
+          contato_nome: data.contatoNome,
+          contato_telefone: data.contatoTelefone,
+          contato_email: data.contatoEmail,
           diretoria_responsavel: diretoriaResponsavel,
-          data_solicitacao: dataSolicitacao.toISOString(),
-          classificacao_urgencia: classificacaoUrgencia,
-          documento_origem_dados: documentoOrigemDados,
+          data_solicitacao: data.dataSolicitacao.toISOString(),
+          classificacao_urgencia: data.classificacaoUrgencia,
+          justificativa_urgencia: data.justificativaUrgencia || null,
+          documento_origem_dados: data.documentoOrigemDados,
           documento_origem_anexo: documentoOrigemUrl,
-          numero_referencia_opous: numeroReferenciaOpous,
-          objetivo_vistoria: objetivoVistoria,
-          tipo_vistoria: tipoVistoria,
+          numero_referencia_opous: data.numeroReferenciaOpous || null,
+          objetivo_vistoria: data.objetivoVistoria,
+          tipo_vistoria: data.tipoVistoria,
         })
         .select()
         .single();
 
       if (solicitacaoError) throw solicitacaoError;
 
-      if (files && files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
+      // Upload de anexos adicionais
+      if (files.length > 0) {
+        for (const file of files) {
           const fileName = `${Date.now()}_${file.name}`;
           const filePath = `${user.id}/${fileName}`;
 
@@ -230,13 +329,14 @@ const NovaSolicitacao = () => {
         }
       }
 
+      limparRascunho();
       toast.success("Solicitação criada com sucesso!");
       navigate("/solicitacoes");
     } catch (error: any) {
       toast.error("Erro ao criar solicitação");
       console.error(error);
     } finally {
-      setLoading(false);
+      setShowConfirmDialog(false);
     }
   };
 
@@ -253,31 +353,34 @@ const NovaSolicitacao = () => {
         <CardHeader>
           <CardTitle>Dados da Solicitação</CardTitle>
           <CardDescription>
-            Todos os campos são obrigatórios
+            Campos marcados com <span className="text-destructive">*</span> são obrigatórios
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="objeto">Objeto da Vistoria</Label>
+              <RequiredLabel htmlFor="objeto">Objeto da Vistoria</RequiredLabel>
               <Textarea
                 id="objeto"
                 placeholder="Descreva o objeto da vistoria..."
-                value={objeto}
-                onChange={(e) => setObjeto(e.target.value)}
-                required
-                className="min-h-[100px]"
+                {...register("objeto")}
+                className={cn(
+                  "min-h-[100px]",
+                  errors.objeto && "border-destructive focus-visible:ring-destructive"
+                )}
               />
+              {errors.objeto && (
+                <p className="text-sm text-destructive">{errors.objeto.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organizacao">Organização Militar Apoiada</Label>
+              <RequiredLabel htmlFor="organizacao">Organização Militar Apoiada</RequiredLabel>
               <Select 
                 value={organizacaoId} 
-                onValueChange={handleOrganizacaoChange} 
-                required
+                onValueChange={handleOrganizacaoChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className={cn(errors.organizacaoId && "border-destructive")}>
                   <SelectValue placeholder="Selecione uma organização" />
                 </SelectTrigger>
                 <SelectContent>
@@ -307,6 +410,9 @@ const NovaSolicitacao = () => {
                   )}
                 </SelectContent>
               </Select>
+              {errors.organizacaoId && (
+                <p className="text-sm text-destructive">{errors.organizacaoId.message}</p>
+              )}
             </div>
 
             {organizacaoId && (
@@ -348,9 +454,9 @@ const NovaSolicitacao = () => {
                   setVistoriaNoEnderecoOM(novoValor);
                   
                   if (novoValor) {
-                    setEnderecoCompleto(enderecoOMOriginal);
+                    setValue("enderecoCompleto", enderecoOMOriginal);
                   } else {
-                    setEnderecoCompleto("");
+                    setValue("enderecoCompleto", "");
                   }
                 }}
                 disabled={!organizacaoId}
@@ -372,7 +478,7 @@ const NovaSolicitacao = () => {
 
             {vistoriaNoEnderecoOM && organizacaoId && (
               <div className="space-y-2">
-                <Label htmlFor="endereco">Endereço da Vistoria</Label>
+                <RequiredLabel htmlFor="endereco">Endereço da Vistoria</RequiredLabel>
                 <div className="bg-muted p-4 rounded-lg border border-border">
                   <p className="text-sm font-medium text-foreground">
                     {enderecoOMOriginal || "Endereço não cadastrado"}
@@ -385,95 +491,134 @@ const NovaSolicitacao = () => {
             )}
 
             {!vistoriaNoEnderecoOM && organizacaoId && (
-              <div className="space-y-2">
-                <Label htmlFor="endereco-alternativo">
-                  Endereço Completo onde Será Realizada a Vistoria
-                </Label>
-                <Textarea
-                  id="endereco-alternativo"
-                  placeholder="Digite o endereço completo onde será realizada a vistoria..."
-                  value={enderecoCompleto}
-                  onChange={(e) => setEnderecoCompleto(e.target.value)}
-                  required
-                  className="min-h-[80px]"
-                />
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <span className="text-amber-500">⚠️</span>
-                  <p>
-                    Atenção: A vistoria será realizada em endereço diferente do cadastrado na OM
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP (opcional - para preenchimento automático)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="cep"
+                      placeholder="00000-000"
+                      value={cep}
+                      onChange={(e) => handleCepChange(e.target.value)}
+                      onBlur={handleCepBlur}
+                      maxLength={9}
+                      className="flex-1"
+                    />
+                    {buscandoCep && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    Digite o CEP para buscar o endereço automaticamente
                   </p>
                 </div>
-              </div>
+
+                <div className="space-y-2">
+                  <RequiredLabel htmlFor="endereco-alternativo">
+                    Endereço Completo onde Será Realizada a Vistoria
+                  </RequiredLabel>
+                  <Textarea
+                    id="endereco-alternativo"
+                    placeholder="Digite o endereço completo onde será realizada a vistoria..."
+                    {...register("enderecoCompleto")}
+                    className={cn(
+                      "min-h-[80px]",
+                      errors.enderecoCompleto && "border-destructive focus-visible:ring-destructive"
+                    )}
+                  />
+                  {errors.enderecoCompleto && (
+                    <p className="text-sm text-destructive">{errors.enderecoCompleto.message}</p>
+                  )}
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <span className="text-amber-500">⚠️</span>
+                    <p>
+                      Atenção: A vistoria será realizada em endereço diferente do cadastrado na OM
+                    </p>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="space-y-4">
               <Label>Contato do Responsável na OM Apoiada</Label>
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contatoNome">Nome</Label>
+                  <RequiredLabel htmlFor="contatoNome">Nome</RequiredLabel>
                   <Input
                     id="contatoNome"
                     placeholder="Nome completo do responsável"
-                    value={contatoNome}
-                    onChange={(e) => setContatoNome(e.target.value)}
-                    required
+                    {...register("contatoNome")}
+                    className={cn(errors.contatoNome && "border-destructive")}
                   />
+                  {errors.contatoNome && (
+                    <p className="text-sm text-destructive">{errors.contatoNome.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contatoTelefone">Telefone</Label>
+                  <RequiredLabel htmlFor="contatoTelefone">Telefone</RequiredLabel>
                   <Input
                     id="contatoTelefone"
                     type="tel"
                     placeholder="(00) 00000-0000"
-                    value={contatoTelefone}
-                    onChange={(e) => setContatoTelefone(e.target.value)}
-                    required
+                    {...register("contatoTelefone")}
+                    onChange={handleTelefoneChange}
+                    maxLength={15}
+                    className={cn(errors.contatoTelefone && "border-destructive")}
                   />
+                  {errors.contatoTelefone && (
+                    <p className="text-sm text-destructive">{errors.contatoTelefone.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contatoEmail">E-mail</Label>
+                  <RequiredLabel htmlFor="contatoEmail">E-mail</RequiredLabel>
                   <Input
                     id="contatoEmail"
                     type="email"
                     placeholder="email@exemplo.com"
-                    value={contatoEmail}
-                    onChange={(e) => setContatoEmail(e.target.value)}
-                    required
+                    {...register("contatoEmail")}
+                    className={cn(errors.contatoEmail && "border-destructive")}
                   />
+                  {errors.contatoEmail && (
+                    <p className="text-sm text-destructive">{errors.contatoEmail.message}</p>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dataSolicitacao">Data da Solicitação</Label>
+              <RequiredLabel htmlFor="dataSolicitacao">Data da Solicitação</RequiredLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !dataSolicitacao && "text-muted-foreground"
+                      !watch("dataSolicitacao") && "text-muted-foreground",
+                      errors.dataSolicitacao && "border-destructive"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataSolicitacao ? format(dataSolicitacao, "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                    {watch("dataSolicitacao") ? format(watch("dataSolicitacao"), "dd/MM/yyyy") : <span>Selecione uma data</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={dataSolicitacao}
-                    onSelect={(date) => date && setDataSolicitacao(date)}
+                    selected={watch("dataSolicitacao")}
+                    onSelect={(date) => date && setValue("dataSolicitacao", date)}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
+              {errors.dataSolicitacao && (
+                <p className="text-sm text-destructive">{errors.dataSolicitacao.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="classificacao">Classificação da Urgência</Label>
-              <Select value={classificacaoUrgencia} onValueChange={setClassificacaoUrgencia} required>
-                <SelectTrigger>
+              <RequiredLabel htmlFor="classificacao">Classificação da Urgência</RequiredLabel>
+              <Select value={classificacaoUrgencia} onValueChange={(value) => setValue("classificacaoUrgencia", value as any)}>
+                <SelectTrigger className={cn(errors.classificacaoUrgencia && "border-destructive")}>
                   <SelectValue placeholder="Selecione a urgência" />
                 </SelectTrigger>
                 <SelectContent>
@@ -481,69 +626,97 @@ const NovaSolicitacao = () => {
                   <SelectItem value="Não Prioritário">Não Prioritário</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.classificacaoUrgencia && (
+                <p className="text-sm text-destructive">{errors.classificacaoUrgencia.message}</p>
+              )}
             </div>
 
+            {classificacaoUrgencia === "Prioritário" && (
+              <div className="space-y-2 border-l-4 border-destructive pl-4 py-2 bg-destructive/5 rounded">
+                <RequiredLabel htmlFor="justificativaUrgencia">
+                  Justificativa para Classificação como Prioritário
+                </RequiredLabel>
+                <Textarea
+                  id="justificativaUrgencia"
+                  placeholder="Explique detalhadamente por que esta solicitação é prioritária (mínimo 20 caracteres)..."
+                  {...register("justificativaUrgencia")}
+                  className={cn(
+                    "min-h-[80px]",
+                    errors.justificativaUrgencia && "border-destructive focus-visible:ring-destructive"
+                  )}
+                />
+                {errors.justificativaUrgencia && (
+                  <p className="text-sm text-destructive">{errors.justificativaUrgencia.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  Justificativa obrigatória para solicitações prioritárias
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="documentoDados">Documento que Originou a Solicitação (Dados)</Label>
+              <RequiredLabel htmlFor="documentoDados">Documento que Originou a Solicitação (Dados)</RequiredLabel>
               <Textarea
                 id="documentoDados"
                 placeholder="Descreva os dados do documento (número, tipo, data, etc.)"
-                value={documentoOrigemDados}
-                onChange={(e) => setDocumentoOrigemDados(e.target.value)}
-                required
-                className="min-h-[80px]"
+                {...register("documentoOrigemDados")}
+                className={cn(
+                  "min-h-[80px]",
+                  errors.documentoOrigemDados && "border-destructive focus-visible:ring-destructive"
+                )}
               />
+              {errors.documentoOrigemDados && (
+                <p className="text-sm text-destructive">{errors.documentoOrigemDados.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="documentoAnexo">Anexar Documento de Origem</Label>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
-                <input
-                  id="documentoAnexo"
-                  type="file"
-                  onChange={(e) => setDocumentoOrigemFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                />
-                <label htmlFor="documentoAnexo" className="cursor-pointer">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Clique para anexar o documento
-                  </p>
-                  {documentoOrigemFile && (
-                    <p className="text-sm text-primary mt-2 font-medium">
-                      {documentoOrigemFile.name}
-                    </p>
-                  )}
-                </label>
-              </div>
+              <FileUploadZone
+                id="documentoAnexo"
+                file={documentoOrigemFile}
+                onFileChange={handleDocumentoFileChange}
+                label="Clique para anexar o documento de origem"
+                error={documentoFileError}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="opous">Número de Referência no Sistema OPOUS</Label>
               <Input
                 id="opous"
-                placeholder="Número de referência no OPOUS"
-                value={numeroReferenciaOpous}
-                onChange={(e) => setNumeroReferenciaOpous(e.target.value)}
+                placeholder="Número de referência no OPOUS (opcional)"
+                {...register("numeroReferenciaOpous")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="objetivo">Objetivo da Vistoria</Label>
+              <RequiredLabel htmlFor="objetivo">Objetivo da Vistoria</RequiredLabel>
               <Textarea
                 id="objetivo"
                 placeholder="Descreva o objetivo da vistoria..."
-                value={objetivoVistoria}
-                onChange={(e) => setObjetivoVistoria(e.target.value)}
-                required
-                className="min-h-[100px]"
+                {...register("objetivoVistoria")}
+                className={cn(
+                  "min-h-[100px]",
+                  errors.objetivoVistoria && "border-destructive focus-visible:ring-destructive"
+                )}
               />
+              {errors.objetivoVistoria && (
+                <p className="text-sm text-destructive">{errors.objetivoVistoria.message}</p>
+              )}
+              {tipoVistoria && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  Template inserido automaticamente. Você pode editá-lo conforme necessário.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo de Vistoria</Label>
-              <Select value={tipoVistoria} onValueChange={setTipoVistoria} required>
-                <SelectTrigger>
+              <RequiredLabel htmlFor="tipo">Tipo de Vistoria</RequiredLabel>
+              <Select value={tipoVistoria} onValueChange={(value) => setValue("tipoVistoria", value)}>
+                <SelectTrigger className={cn(errors.tipoVistoria && "border-destructive")}>
                   <SelectValue placeholder="Selecione o tipo de vistoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -554,30 +727,54 @@ const NovaSolicitacao = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.tipoVistoria && (
+                <p className="text-sm text-destructive">{errors.tipoVistoria.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="files">Anexos Adicionais (opcional)</Label>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
+              <div className={cn(
+                "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+                filesError ? "border-destructive" : "hover:border-primary",
+                files.length > 0 && "bg-secondary/50"
+              )}>
                 <input
                   id="files"
                   type="file"
                   multiple
-                  onChange={(e) => setFiles(e.target.files)}
+                  onChange={handleFilesChange}
                   className="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 />
-                <label htmlFor="files" className="cursor-pointer">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Clique para selecionar arquivos adicionais
-                  </p>
-                  {files && files.length > 0 && (
-                    <p className="text-sm text-primary mt-2 font-medium">
-                      {files.length} arquivo(s) selecionado(s)
-                    </p>
+                <label htmlFor="files" className="cursor-pointer block">
+                  {files.length === 0 ? (
+                    <>
+                      <div className="w-8 h-8 mx-auto mb-2 text-muted-foreground">📎</div>
+                      <p className="text-sm text-muted-foreground">
+                        Clique para selecionar arquivos adicionais
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Máximo 10MB por arquivo
+                      </p>
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-primary">
+                        {files.length} arquivo(s) selecionado(s)
+                      </p>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        {files.map((file, i) => (
+                          <div key={i}>{file.name}</div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </label>
               </div>
+              {filesError && (
+                <p className="text-sm text-destructive">{filesError}</p>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -591,16 +788,105 @@ const NovaSolicitacao = () => {
               </Button>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="flex-1 gap-2"
               >
-                <FileText className="w-4 h-4" />
-                {loading ? "Criando..." : "Criar Solicitação"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    📄 Criar Solicitação
+                  </>
+                )}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      {/* Modal de Confirmação */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Nova Solicitação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Revise os dados antes de enviar a solicitação
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <p className="font-semibold text-sm mb-1">Organização Militar:</p>
+              <p className="text-sm text-muted-foreground">
+                {organizacoes.find(o => o.id.toString() === watchedFields.organizacaoId)?.nome}
+              </p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-sm mb-1">Objeto:</p>
+              <p className="text-sm text-muted-foreground">{watchedFields.objeto}</p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-sm mb-1">Endereço da Vistoria:</p>
+              <p className="text-sm text-muted-foreground">{watchedFields.enderecoCompleto}</p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-sm mb-1">Tipo de Vistoria:</p>
+              <p className="text-sm text-muted-foreground">{watchedFields.tipoVistoria}</p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-sm mb-1">Classificação:</p>
+              <p className={cn(
+                "text-sm font-medium",
+                watchedFields.classificacaoUrgencia === "Prioritário" ? "text-destructive" : "text-muted-foreground"
+              )}>
+                {watchedFields.classificacaoUrgencia}
+              </p>
+            </div>
+
+            {watchedFields.classificacaoUrgencia === "Prioritário" && watchedFields.justificativaUrgencia && (
+              <div>
+                <p className="font-semibold text-sm mb-1">Justificativa de Urgência:</p>
+                <p className="text-sm text-muted-foreground">{watchedFields.justificativaUrgencia}</p>
+              </div>
+            )}
+            
+            <div>
+              <p className="font-semibold text-sm mb-1">Contato:</p>
+              <p className="text-sm text-muted-foreground">
+                {watchedFields.contatoNome} - {watchedFields.contatoTelefone} - {watchedFields.contatoEmail}
+              </p>
+            </div>
+
+            {documentoOrigemFile && (
+              <div>
+                <p className="font-semibold text-sm mb-1">Documento de Origem:</p>
+                <p className="text-sm text-muted-foreground">{documentoOrigemFile.name}</p>
+              </div>
+            )}
+
+            {files.length > 0 && (
+              <div>
+                <p className="font-semibold text-sm mb-1">Anexos Adicionais:</p>
+                <p className="text-sm text-muted-foreground">{files.length} arquivo(s)</p>
+              </div>
+            )}
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Revisar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarEnvio}>
+              Confirmar Envio
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

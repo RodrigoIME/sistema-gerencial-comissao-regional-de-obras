@@ -156,6 +156,7 @@ export type Database = {
           documento_origem_dados: string | null
           endereco_completo: string | null
           id: number
+          justificativa_urgencia: string | null
           numero_referencia_opous: string | null
           objetivo_vistoria: string | null
           objeto: string
@@ -175,6 +176,7 @@ export type Database = {
           documento_origem_dados?: string | null
           endereco_completo?: string | null
           id?: number
+          justificativa_urgencia?: string | null
           numero_referencia_opous?: string | null
           objetivo_vistoria?: string | null
           objeto: string
@@ -194,6 +196,7 @@ export type Database = {
           documento_origem_dados?: string | null
           endereco_completo?: string | null
           id?: number
+          justificativa_urgencia?: string | null
           numero_referencia_opous?: string | null
           objetivo_vistoria?: string | null
           objeto?: string
