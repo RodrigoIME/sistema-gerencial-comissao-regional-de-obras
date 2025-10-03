@@ -305,24 +305,53 @@ export type Database = {
       }
       usuarios: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string
           id: string
           nome: string | null
+          nome_guerra: string | null
+          organizacao_militar_id: number | null
+          posto_graduacao: string | null
+          telefone: string | null
+          telefone_alternativo: string | null
+          updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email: string
           id?: string
           nome?: string | null
+          nome_guerra?: string | null
+          organizacao_militar_id?: number | null
+          posto_graduacao?: string | null
+          telefone?: string | null
+          telefone_alternativo?: string | null
+          updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string
           id?: string
           nome?: string | null
+          nome_guerra?: string | null
+          organizacao_militar_id?: number | null
+          posto_graduacao?: string | null
+          telefone?: string | null
+          telefone_alternativo?: string | null
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_organizacao_militar_id_fkey"
+            columns: ["organizacao_militar_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vistorias: {
         Row: {
