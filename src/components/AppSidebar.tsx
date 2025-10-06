@@ -100,69 +100,97 @@ export function AppSidebar() {
 
         {/* MÓDULO VISTORIAS */}
         {hasModule('vistorias') && (
-          <Collapsible 
-            open={isCollapsedSidebar || vistoriasOpen || isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])} 
-            onOpenChange={setVistoriasOpen}
-            className="group/collapsible"
-          >
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-purple-500" />
-                    <span>Vistorias</span>
-                  </div>
-                  <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
+          <>
+            {/* QUANDO COLAPSADA: Mostrar apenas ícone principal */}
+            {isCollapsedSidebar ? (
+              <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarMenuSub>
-                      {/* Dashboard */}
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={isActive('/')}>
-                          <NavLink to="/" end>
-                            <BarChart3 className={cn(
-                              "text-emerald-500 transition-all",
-                              isActive('/') && "drop-shadow-md"
-                            )} />
-                            <span>Dashboard</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-
-                      {/* Vistorias Cadastradas */}
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={isActive('/solicitacoes')}>
-                          <NavLink to="/solicitacoes" end>
-                            <FileStack className={cn(
-                              "text-purple-500 transition-all",
-                              isActive('/solicitacoes') && "drop-shadow-md"
-                            )} />
-                            <span>Vistorias Cadastradas</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-
-                      {/* Nova Solicitação */}
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={isActive('/nova-solicitacao')}>
-                          <NavLink to="/nova-solicitacao" end>
-                            <FilePlus className={cn(
-                              "text-orange-500 transition-all",
-                              isActive('/nova-solicitacao') && "drop-shadow-md"
-                            )} />
-                            <span>Nova Solicitação</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])}
+                        tooltip="Vistorias"
+                      >
+                        <NavLink to="/">
+                          <ClipboardList className={cn(
+                            "text-purple-500 transition-all",
+                            isGroupActive(['/', '/solicitacoes', '/nova-solicitacao']) && "drop-shadow-md"
+                          )} />
+                          <span>Vistorias</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
+              </SidebarGroup>
+            ) : (
+              /* QUANDO EXPANDIDA: Mostrar Collapsible com subitens */
+              <Collapsible 
+                open={vistoriasOpen || isGroupActive(['/', '/solicitacoes', '/nova-solicitacao'])}
+                onOpenChange={setVistoriasOpen}
+                className="group/collapsible"
+              >
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4 text-purple-500" />
+                        <span>Vistorias</span>
+                      </div>
+                      <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        <SidebarMenuSub>
+                          {/* Dashboard */}
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isActive('/')}>
+                              <NavLink to="/" end>
+                                <BarChart3 className={cn(
+                                  "text-emerald-500 transition-all",
+                                  isActive('/') && "drop-shadow-md"
+                                )} />
+                                <span>Dashboard</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+
+                          {/* Vistorias Cadastradas */}
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isActive('/solicitacoes')}>
+                              <NavLink to="/solicitacoes" end>
+                                <FileStack className={cn(
+                                  "text-purple-500 transition-all",
+                                  isActive('/solicitacoes') && "drop-shadow-md"
+                                )} />
+                                <span>Vistorias Cadastradas</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+
+                          {/* Nova Solicitação */}
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isActive('/nova-solicitacao')}>
+                              <NavLink to="/nova-solicitacao" end>
+                                <FilePlus className={cn(
+                                  "text-orange-500 transition-all",
+                                  isActive('/nova-solicitacao') && "drop-shadow-md"
+                                )} />
+                                <span>Nova Solicitação</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            )}
+          </>
         )}
 
         {/* MÓDULO PROJETOS (Placeholder) */}
