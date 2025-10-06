@@ -48,6 +48,16 @@ const Dashboard = () => {
     // Aguarda organizacoes serem carregadas antes de buscar dados
     if (organizacoes.length === 0) return;
 
+    console.log('🔄 [Dashboard] Iniciando carregamento de dados', {
+      organizacoesCount: organizacoes.length,
+      filtros: {
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+        selectedOM,
+        selectedOrgaoSetorial
+      }
+    });
+
     const fetchAllData = async () => {
       setIsLoadingData(true);
       try {
@@ -57,6 +67,9 @@ const Dashboard = () => {
           fetchOMData(),
           fetchOrgaoSetorialData(),
         ]);
+        console.log('✅ [Dashboard] Dados carregados com sucesso');
+      } catch (error) {
+        console.error('❌ [Dashboard] Erro ao carregar dados:', error);
       } finally {
         setIsLoadingData(false);
       }
@@ -66,6 +79,7 @@ const Dashboard = () => {
   }, [startDate, endDate, selectedOM, selectedOrgaoSetorial, organizacoes]);
 
   const fetchOrganizacoes = async () => {
+    console.log('🔄 [Dashboard] Carregando organizações...');
     setIsLoadingOrganizacoes(true);
     try {
       const { data, error } = await supabase
@@ -74,26 +88,36 @@ const Dashboard = () => {
         .order('"Organização Militar"');
 
       if (error) throw error;
+      console.log('✅ [Dashboard] Organizações carregadas:', data?.length || 0);
       setOrganizacoes(data || []);
     } catch (error) {
+      console.error('❌ [Dashboard] Erro ao carregar organizações:', error);
       toast.error("Erro ao carregar organizações");
-      console.error(error);
     } finally {
       setIsLoadingOrganizacoes(false);
     }
   };
 
   const applyFilters = (data: any[]) => {
-    return data.filter((item) => {
+    const filtered = data.filter((item) => {
       const itemDate = new Date(item.data_solicitacao);
       const matchesDate = (!startDate || itemDate >= startDate) && (!endDate || itemDate <= endDate);
       const matchesOM = selectedOM === "all" || item.organizacao_id === parseInt(selectedOM);
       return matchesDate && matchesOM;
     });
+    
+    console.log('🔍 [Dashboard] Filtros aplicados:', {
+      total: data.length,
+      filtrados: filtered.length,
+      diferenca: data.length - filtered.length
+    });
+    
+    return filtered;
   };
 
   const fetchStats = async () => {
     try {
+      console.log('📊 [Dashboard] Buscando estatísticas...');
       const { data: allSolicitacoes, error } = await supabase
         .from("solicitacoes")
         .select("data_solicitacao, status, organizacao_id");
@@ -114,22 +138,26 @@ const Dashboard = () => {
         .from("anexos")
         .select("*", { count: "exact", head: true });
 
-      setStats({
+      const stats = {
         totalSolicitacoes: filtered.length,
         totalVistorias: vistoriasCount || 0,
         totalAnexos: anexosCount || 0,
         pendentes,
         finalizadas,
         emExecucao,
-      });
+      };
+      
+      console.log('✅ [Dashboard] Estatísticas:', stats);
+      setStats(stats);
     } catch (error: any) {
+      console.error('❌ [Dashboard] Erro ao carregar estatísticas:', error);
       toast.error("Erro ao carregar estatísticas");
-      console.error(error);
     }
   };
 
   const fetchMonthlyData = async () => {
     try {
+      console.log('📈 [Dashboard] Buscando dados mensais...');
       const { data, error } = await supabase
         .from("solicitacoes")
         .select("data_solicitacao, status, organizacao_id");
@@ -157,14 +185,16 @@ const Dashboard = () => {
         "Em Execução": stats.emExecucao,
       }));
 
+      console.log('✅ [Dashboard] Dados mensais processados:', chartData.length, 'meses');
       setMonthlyData(chartData);
     } catch (error) {
-      console.error("Erro ao buscar dados mensais:", error);
+      console.error("❌ [Dashboard] Erro ao buscar dados mensais:", error);
     }
   };
 
   const fetchOMData = async () => {
     try {
+      console.log('🏢 [Dashboard] Buscando dados por OM...');
       const { data: solicitacoes, error } = await supabase
         .from("solicitacoes")
         .select("organizacao_id, data_solicitacao");
@@ -187,14 +217,16 @@ const Dashboard = () => {
           Total: omCounts[org.id],
         }));
 
+      console.log('✅ [Dashboard] Dados por OM processados:', chartData.length, 'organizações com dados');
       setOMData(chartData);
     } catch (error) {
-      console.error("Erro ao buscar dados por OM:", error);
+      console.error("❌ [Dashboard] Erro ao buscar dados por OM:", error);
     }
   };
 
   const fetchOrgaoSetorialData = async () => {
     try {
+      console.log('🏛️ [Dashboard] Buscando dados por Órgão Setorial...');
       const { data: solicitacoes, error } = await supabase
         .from("solicitacoes")
         .select("organizacao_id, data_solicitacao");
@@ -219,12 +251,14 @@ const Dashboard = () => {
 
       if (selectedOrgaoSetorial !== "all") {
         const filtered = chartData.filter((item) => item.orgao === selectedOrgaoSetorial);
+        console.log('✅ [Dashboard] Dados por Órgão Setorial processados (filtrado):', filtered.length);
         setOrgaoSetorialData(filtered);
       } else {
+        console.log('✅ [Dashboard] Dados por Órgão Setorial processados:', chartData.length, 'órgãos');
         setOrgaoSetorialData(chartData);
       }
     } catch (error) {
-      console.error("Erro ao buscar dados por Órgão Setorial:", error);
+      console.error("❌ [Dashboard] Erro ao buscar dados por Órgão Setorial:", error);
     }
   };
 
