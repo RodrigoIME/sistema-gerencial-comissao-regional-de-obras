@@ -96,7 +96,7 @@ const NovaSolicitacao = () => {
     resolver: zodResolver(novaSolicitacaoSchema),
     defaultValues: {
       dataSolicitacao: new Date(),
-      classificacaoUrgencia: "Não Prioritário",
+      classificacaoUrgencia: "Normal",
     }
   });
 
@@ -134,7 +134,7 @@ const NovaSolicitacao = () => {
       setValue("contatoNome", userProfile.nome || "");
       setValue("contatoTelefone", userProfile.telefone || "");
       setValue("contatoEmail", userProfile.email || "");
-      toast.info("Dados de contato preenchidos automaticamente");
+      toast.success("Dados preenchidos com sucesso");
     }
   };
 
@@ -485,33 +485,18 @@ const NovaSolicitacao = () => {
             </div>
 
             {organizacaoId && (
-              <>
-                <div className="space-y-2">
-                  <Label>Sigla da Organização Militar</Label>
-                  <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium font-mono">
-                      {siglaDaOM}
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      ✓ Preenchido automaticamente
-                    </span>
-                  </div>
+              <div className="space-y-2">
+                <Label>Órgão Setorial Responsável</Label>
+                <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {diretoriaResponsavel}
+                  </span>
+                  <span className="text-xs text-muted-foreground font-mono ml-2">
+                    ({siglaDaOM})
+                  </span>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Órgão Setorial Responsável</Label>
-                  <div className="bg-muted p-3 rounded-lg border border-border flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {diretoriaResponsavel}
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      ✓ Preenchido automaticamente
-                    </span>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
 
             <div className="space-y-3">
@@ -700,14 +685,16 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <RequiredLabel htmlFor="classificacao">Classificação da Urgência</RequiredLabel>
+              <RequiredLabel htmlFor="classificacao">Prioridade de Atendimento</RequiredLabel>
               <Select value={classificacaoUrgencia} onValueChange={(value) => setValue("classificacaoUrgencia", value as any)}>
                 <SelectTrigger className={cn(errors.classificacaoUrgencia && "border-destructive")}>
-                  <SelectValue placeholder="Selecione a urgência" />
+                  <SelectValue placeholder="Selecione a prioridade" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Normal">Normal</SelectItem>
                   <SelectItem value="Prioritário">Prioritário</SelectItem>
-                  <SelectItem value="Não Prioritário">Não Prioritário</SelectItem>
+                  <SelectItem value="Urgente">Urgente</SelectItem>
+                  <SelectItem value="Urgentíssimo">Urgentíssimo</SelectItem>
                 </SelectContent>
               </Select>
               {errors.classificacaoUrgencia && (
@@ -715,14 +702,14 @@ const NovaSolicitacao = () => {
               )}
             </div>
 
-            {classificacaoUrgencia === "Prioritário" && (
+            {(classificacaoUrgencia === "Urgente" || classificacaoUrgencia === "Urgentíssimo") && (
               <div className="space-y-2 border-l-4 border-destructive pl-4 py-2 bg-destructive/5 rounded">
                 <RequiredLabel htmlFor="justificativaUrgencia">
-                  Justificativa para Classificação como Prioritário
+                  Justificativa para Classificação como Urgente
                 </RequiredLabel>
                 <Textarea
                   id="justificativaUrgencia"
-                  placeholder="Explique detalhadamente por que esta solicitação é prioritária (mínimo 20 caracteres)..."
+                  placeholder="Explique detalhadamente por que esta solicitação é urgente ou urgentíssima (mínimo 20 caracteres)..."
                   {...register("justificativaUrgencia")}
                   className={cn(
                     "min-h-[80px]",
@@ -734,7 +721,7 @@ const NovaSolicitacao = () => {
                 )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Info className="w-3 h-3" />
-                  Justificativa obrigatória para solicitações prioritárias
+                  Justificativa obrigatória para solicitações urgentes ou urgentíssimas
                 </p>
               </div>
             )}

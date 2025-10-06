@@ -172,18 +172,26 @@ const Solicitacoes = () => {
   const getUrgenciaBadge = (urgencia: string | null) => {
     if (!urgencia) return null;
     
-    if (urgencia === "Prioritário") {
+    if (urgencia === "Urgente" || urgencia === "Urgentíssimo") {
       return (
         <Badge className="bg-destructive/20 text-destructive hover:bg-destructive/30 gap-1">
           <AlertCircle className="w-3 h-3" />
-          Prioritário
+          {urgencia}
+        </Badge>
+      );
+    }
+    
+    if (urgencia === "Prioritário") {
+      return (
+        <Badge variant="default" className="gap-1">
+          {urgencia}
         </Badge>
       );
     }
     
     return (
       <Badge variant="outline" className="border-muted-foreground/30">
-        Não Prioritário
+        {urgencia}
       </Badge>
     );
   };

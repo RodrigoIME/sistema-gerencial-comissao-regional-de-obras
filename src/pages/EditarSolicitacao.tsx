@@ -336,14 +336,16 @@ const EditarSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="classificacao">Classificação da Urgência</Label>
+              <Label htmlFor="classificacao">Prioridade de Atendimento</Label>
               <Select value={classificacaoUrgencia} onValueChange={setClassificacaoUrgencia} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a urgência" />
+                  <SelectValue placeholder="Selecione a prioridade" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Normal">Normal</SelectItem>
                   <SelectItem value="Prioritário">Prioritário</SelectItem>
-                  <SelectItem value="Não Prioritário">Não Prioritário</SelectItem>
+                  <SelectItem value="Urgente">Urgente</SelectItem>
+                  <SelectItem value="Urgentíssimo">Urgentíssimo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

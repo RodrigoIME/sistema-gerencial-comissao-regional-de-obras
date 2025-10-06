@@ -33,8 +33,8 @@ export const novaSolicitacaoSchema = z.object({
   
   dataSolicitacao: z.date(),
   
-  classificacaoUrgencia: z.enum(["Prioritário", "Não Prioritário"], {
-    required_error: "Selecione a classificação de urgência"
+  classificacaoUrgencia: z.enum(["Normal", "Prioritário", "Urgente", "Urgentíssimo"], {
+    required_error: "Selecione a prioridade de atendimento"
   }),
   
   justificativaUrgencia: z.string().optional(),
@@ -68,13 +68,13 @@ export const novaSolicitacaoSchema = z.object({
   // REMOVIDO: objetivoVistoria
 })
 .refine((data) => {
-  // Validação condicional: justificativa obrigatória se Prioritário
-  if (data.classificacaoUrgencia === "Prioritário") {
+  // Validação condicional: justificativa obrigatória se Urgente ou Urgentíssimo
+  if (data.classificacaoUrgencia === "Urgente" || data.classificacaoUrgencia === "Urgentíssimo") {
     return data.justificativaUrgencia && data.justificativaUrgencia.length >= 20;
   }
   return true;
 }, {
-  message: "Justificativa obrigatória para solicitações prioritárias (mínimo 20 caracteres)",
+  message: "Justificativa obrigatória para solicitações urgentes ou urgentíssimas (mínimo 20 caracteres)",
   path: ["justificativaUrgencia"],
 })
 .refine((data) => {
