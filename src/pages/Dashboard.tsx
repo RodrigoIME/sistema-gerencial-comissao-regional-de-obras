@@ -426,18 +426,32 @@ const Dashboard = () => {
           <CardTitle>Vistorias por Mês</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
-              <Legend />
-              <Line type="monotone" dataKey="Recebidas" stroke="hsl(var(--primary))" strokeWidth={2} />
-              <Line type="monotone" dataKey="Finalizadas" stroke="hsl(var(--secondary))" strokeWidth={2} />
-              <Line type="monotone" dataKey="Em Execução" stroke="hsl(var(--accent))" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          {isLoadingData ? (
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : monthlyData.length === 0 ? (
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              <p>Nenhum dado disponível para o período selecionado</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
+                <Legend />
+                <Line type="monotone" dataKey="Recebidas" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line type="monotone" dataKey="Finalizadas" stroke="hsl(var(--secondary))" strokeWidth={2} />
+                <Line type="monotone" dataKey="Em Execução" stroke="hsl(var(--accent))" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
@@ -449,15 +463,29 @@ const Dashboard = () => {
             <CardTitle>Vistorias por Organização Militar</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={omData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="om" />
-                <YAxis />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="Total" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
+            {isLoadingData ? (
+              <div className="space-y-3">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : omData.length === 0 ? (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <p>Nenhum dado disponível para o período selecionado</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={omData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="om" />
+                  <YAxis />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
+                  <Bar dataKey="Total" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -467,15 +495,29 @@ const Dashboard = () => {
             <CardTitle>Vistorias por Órgão Setorial</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={orgaoSetorialData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="orgao" />
-                <YAxis />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="Total" fill="hsl(var(--secondary))" />
-              </BarChart>
-            </ResponsiveContainer>
+            {isLoadingData ? (
+              <div className="space-y-3">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : orgaoSetorialData.length === 0 ? (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <p>Nenhum dado disponível para o período selecionado</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={orgaoSetorialData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="orgao" />
+                  <YAxis />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
+                  <Bar dataKey="Total" fill="hsl(var(--secondary))" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         </div>
