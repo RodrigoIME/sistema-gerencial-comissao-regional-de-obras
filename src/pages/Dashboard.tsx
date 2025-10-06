@@ -10,7 +10,7 @@ import { FileText, CheckCircle2, Clock, Paperclip, CalendarIcon, Filter, Trendin
 import { toast } from "sonner";
 import { format, startOfYear, endOfYear } from "date-fns";
 import { cn } from "@/lib/utils";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface Organizacao {
   id: number;
@@ -39,6 +39,16 @@ const Dashboard = () => {
   const [orgaoSetorialData, setOrgaoSetorialData] = useState<any[]>([]);
   const [isLoadingOrganizacoes, setIsLoadingOrganizacoes] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Paleta de cores para os gráficos
+  const OM_COLORS = [
+    '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
+    '#EF4444', '#14B8A6', '#F97316', '#6366F1', '#84CC16',
+  ];
+
+  const ORGAO_COLORS = [
+    '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444',
+  ];
 
   useEffect(() => {
     fetchOrganizacoes();
@@ -166,27 +176,31 @@ const Dashboard = () => {
 
       const filtered = applyFilters(data || []);
 
-      const monthlyStats: Record<string, { recebidas: number; finalizadas: number; emExecucao: number }> = {};
+      // Agregar por status para PieChart
+      const statusCount = {
+        Recebidas: 0,
+        Finalizadas: 0,
+        "Em Execução": 0,
+      };
 
-      filtered.forEach((item) => {
-        const month = format(new Date(item.data_solicitacao), "MMM");
-        if (!monthlyStats[month]) {
-          monthlyStats[month] = { recebidas: 0, finalizadas: 0, emExecucao: 0 };
-        }
-        monthlyStats[month].recebidas++;
-        if (item.status === "completed") monthlyStats[month].finalizadas++;
-        if (item.status === "in_progress") monthlyStats[month].emExecucao++;
+      filtered.forEach((item: any) => {
+        statusCount.Recebidas++;
+        if (item.status === "completed") statusCount.Finalizadas++;
+        if (item.status === "in_progress") statusCount["Em Execução"]++;
       });
 
-      const chartData = Object.entries(monthlyStats).map(([month, stats]) => ({
-        mes: month,
-        Recebidas: stats.recebidas,
-        Finalizadas: stats.finalizadas,
-        "Em Execução": stats.emExecucao,
-      }));
+      // Converter para formato de PieChart com percentuais
+      const total = filtered.length;
+      const pieData = Object.entries(statusCount)
+        .filter(([_, value]) => value > 0)
+        .map(([name, value]) => ({
+          name,
+          value,
+          percentage: total > 0 ? ((value / total) * 100).toFixed(1) : '0.0'
+        }));
 
-      console.log('✅ [Dashboard] Dados mensais processados:', chartData.length, 'meses');
-      setMonthlyData(chartData);
+      console.log('✅ [Dashboard] Dados mensais processados:', pieData);
+      setMonthlyData(pieData);
     } catch (error) {
       console.error("❌ [Dashboard] Erro ao buscar dados mensais:", error);
     }
@@ -210,12 +224,16 @@ const Dashboard = () => {
         }
       });
 
+      const total = filtered.length;
       const chartData = organizacoes
         .filter((org) => omCounts[org.id])
         .map((org) => ({
-          om: org["Organização Militar"],
-          Total: omCounts[org.id],
-        }));
+          om: org["Sigla da OM"],
+          name: org["Organização Militar"],
+          value: omCounts[org.id],
+          percentage: total > 0 ? ((omCounts[org.id] / total) * 100).toFixed(1) : '0.0',
+        }))
+        .sort((a, b) => b.value - a.value);
 
       console.log('✅ [Dashboard] Dados por OM processados:', chartData.length, 'organizações com dados');
       setOMData(chartData);
@@ -244,15 +262,17 @@ const Dashboard = () => {
         }
       });
 
-      const chartData = Object.entries(setorialCounts).map(([orgao, total]) => ({
+      const total = filtered.length;
+      const chartData = Object.entries(setorialCounts).map(([orgao, count]) => ({
         orgao,
-        Total: total,
+        Total: count,
+        percentage: total > 0 ? (((count as number) / total) * 100).toFixed(1) : '0.0',
       }));
 
       if (selectedOrgaoSetorial !== "all") {
-        const filtered = chartData.filter((item) => item.orgao === selectedOrgaoSetorial);
-        console.log('✅ [Dashboard] Dados por Órgão Setorial processados (filtrado):', filtered.length);
-        setOrgaoSetorialData(filtered);
+        const filteredData = chartData.filter((item) => item.orgao === selectedOrgaoSetorial);
+        console.log('✅ [Dashboard] Dados por Órgão Setorial processados (filtrado):', filteredData.length);
+        setOrgaoSetorialData(filteredData);
       } else {
         console.log('✅ [Dashboard] Dados por Órgão Setorial processados:', chartData.length, 'órgãos');
         setOrgaoSetorialData(chartData);
@@ -474,16 +494,34 @@ const Dashboard = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
+              <PieChart>
+                <Pie
+                  data={monthlyData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percentage }) => `${name} (${percentage}%)`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {monthlyData.map((entry, index) => {
+                    const colors = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))'];
+                    return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                  })}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--background))", 
+                    border: "1px solid hsl(var(--border))" 
+                  }}
+                  formatter={(value: any, name: any, props: any) => [
+                    `${value} vistorias (${props.payload.percentage}%)`,
+                    name
+                  ]}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="Recebidas" stroke="hsl(var(--primary))" strokeWidth={2} />
-                <Line type="monotone" dataKey="Finalizadas" stroke="hsl(var(--secondary))" strokeWidth={2} />
-                <Line type="monotone" dataKey="Em Execução" stroke="hsl(var(--accent))" strokeWidth={2} />
-              </LineChart>
+              </PieChart>
             </ResponsiveContainer>
           )}
         </CardContent>
@@ -511,13 +549,33 @@ const Dashboard = () => {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={omData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="om" />
-                  <YAxis />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
-                  <Bar dataKey="Total" fill="hsl(var(--primary))" />
-                </BarChart>
+                <PieChart>
+                  <Pie
+                    data={omData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ om, percentage }) => `${om} (${percentage}%)`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {omData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={OM_COLORS[index % OM_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--background))", 
+                      border: "1px solid hsl(var(--border))" 
+                    }}
+                    formatter={(value: any, name: any, props: any) => [
+                      `${value} vistorias (${props.payload.percentage}%)`,
+                      props.payload.name
+                    ]}
+                  />
+                  <Legend />
+                </PieChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -547,8 +605,26 @@ const Dashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="orgao" />
                   <YAxis />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }} />
-                  <Bar dataKey="Total" fill="hsl(var(--secondary))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--background))", 
+                      border: "1px solid hsl(var(--border))" 
+                    }}
+                    formatter={(value: any, name: any, props: any) => [
+                      `${value} vistorias (${props.payload.percentage}%)`,
+                      "Total"
+                    ]}
+                  />
+                  <Bar dataKey="Total">
+                    <LabelList 
+                      dataKey="percentage" 
+                      position="top" 
+                      formatter={(value: any) => `${value}%`}
+                    />
+                    {orgaoSetorialData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={ORGAO_COLORS[index % ORGAO_COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
