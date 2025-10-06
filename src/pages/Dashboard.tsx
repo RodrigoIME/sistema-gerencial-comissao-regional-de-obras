@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, CheckCircle2, Clock, Paperclip, CalendarIcon, Filter, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfYear, endOfYear } from "date-fns";
@@ -36,6 +37,8 @@ const Dashboard = () => {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [omData, setOMData] = useState<any[]>([]);
   const [orgaoSetorialData, setOrgaoSetorialData] = useState<any[]>([]);
+  const [isLoadingOrganizacoes, setIsLoadingOrganizacoes] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   useEffect(() => {
     fetchOrganizacoes();
@@ -45,23 +48,39 @@ const Dashboard = () => {
     // Aguarda organizacoes serem carregadas antes de buscar dados
     if (organizacoes.length === 0) return;
 
-    fetchStats();
-    fetchMonthlyData();
-    fetchOMData();
-    fetchOrgaoSetorialData();
+    const fetchAllData = async () => {
+      setIsLoadingData(true);
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchMonthlyData(),
+          fetchOMData(),
+          fetchOrgaoSetorialData(),
+        ]);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchAllData();
   }, [startDate, endDate, selectedOM, selectedOrgaoSetorial, organizacoes]);
 
   const fetchOrganizacoes = async () => {
-    const { data, error } = await supabase
-      .from("organizacoes")
-      .select("*")
-      .order('"Organização Militar"');
+    setIsLoadingOrganizacoes(true);
+    try {
+      const { data, error } = await supabase
+        .from("organizacoes")
+        .select("*")
+        .order('"Organização Militar"');
 
-    if (error) {
+      if (error) throw error;
+      setOrganizacoes(data || []);
+    } catch (error) {
       toast.error("Erro ao carregar organizações");
-      return;
+      console.error(error);
+    } finally {
+      setIsLoadingOrganizacoes(false);
     }
-    setOrganizacoes(data || []);
   };
 
   const applyFilters = (data: any[]) => {
@@ -359,27 +378,46 @@ const Dashboard = () => {
 
       {/* Indicadores Rápidos */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card, index) => (
-          <Card
-            key={card.title}
-            className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-slide-up"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.title}
-              </CardTitle>
-              <div
-                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center`}
-              >
-                <card.icon className="w-5 h-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{card.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+        {isLoadingOrganizacoes || isLoadingData ? (
+          // Loading skeletons
+          Array.from({ length: 4 }).map((_, index) => (
+            <Card
+              key={index}
+              className="border-0 shadow-lg"
+            >
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="w-10 h-10 rounded-xl" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-9 w-20" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          // Actual cards
+          cards.map((card, index) => (
+            <Card
+              key={card.title}
+              className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-slide-up"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {card.title}
+                </CardTitle>
+                <div
+                  className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center`}
+                >
+                  <card.icon className="w-5 h-5 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{card.value}</div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Gráfico Mensal */}
