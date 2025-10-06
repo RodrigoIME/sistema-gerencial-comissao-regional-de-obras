@@ -21,6 +21,8 @@ interface Solicitacao {
   data_solicitacao: string;
   organizacao_id: number;
   classificacao_urgencia: string | null;
+  numero_vistoria: string | null; // NOVO
+  especialidades_envolvidas: string[] | null; // NOVO
   organizacoes?: {
     'Organização Militar': string;
     'Órgão Setorial Responsável': string;
@@ -136,8 +138,10 @@ const Solicitacoes = () => {
       if (error) throw error;
       
       // Mapear os dados para a interface esperada
-      const mappedData = (data || []).map((sol: any) => ({
+      const mappedData: Solicitacao[] = (data || []).map((sol: any) => ({
         ...sol,
+        numero_vistoria: sol.numero_vistoria || null,
+        especialidades_envolvidas: sol.especialidades_envolvidas || null,
         organizacoes: sol.organizacoes ? {
           'Organização Militar': sol.organizacoes["Organização Militar"],
           'Órgão Setorial Responsável': sol.organizacoes["Órgão Setorial Responsável"],
@@ -354,6 +358,11 @@ const Solicitacoes = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {solicitacao.numero_vistoria && (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {solicitacao.numero_vistoria}
+                        </Badge>
+                      )}
                       <h3 className="text-lg font-semibold">{solicitacao.objeto}</h3>
                       {getStatusBadge(solicitacao.status)}
                       {getUrgenciaBadge(solicitacao.classificacao_urgencia)}

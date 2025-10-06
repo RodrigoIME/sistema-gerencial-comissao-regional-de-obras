@@ -2,6 +2,11 @@ import { z } from "zod";
 
 // Schema de validação completo
 export const novaSolicitacaoSchema = z.object({
+  // NOVO - número da vistoria (primeiro campo)
+  numeroVistoria: z.string()
+    .min(1, "Número da vistoria é obrigatório")
+    .max(50, "Máximo de 50 caracteres"),
+  
   objeto: z.string()
     .min(10, "O objeto deve ter no mínimo 10 caracteres")
     .max(500, "Máximo de 500 caracteres"),
@@ -20,9 +25,11 @@ export const novaSolicitacaoSchema = z.object({
   contatoTelefone: z.string()
     .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Formato: (00) 00000-0000"),
   
+  // Email OPCIONAL
   contatoEmail: z.string()
     .email("Email inválido")
-    .toLowerCase(),
+    .optional()
+    .or(z.literal("")),
   
   dataSolicitacao: z.date(),
   
@@ -32,19 +39,35 @@ export const novaSolicitacaoSchema = z.object({
   
   justificativaUrgencia: z.string().optional(),
   
-  documentoOrigemDados: z.string()
-    .min(10, "Descreva os dados do documento (mínimo 10 caracteres)")
-    .max(500, "Descrição muito longa"),
+  // NOVO - tipo de documento origem
+  tipoDocumentoOrigem: z.enum(["DIEx", "Mensagem de Texto", "Outros"], {
+    required_error: "Selecione o tipo de documento"
+  }),
+  
+  // Campos condicionais para DIEx
+  diexNumero: z.string().optional(),
+  diexAssunto: z.string().optional(),
+  diexData: z.string().optional(), // ISO date string
+  diexOrganizacaoMilitar: z.string().optional(),
+  
+  // Campos condicionais para Mensagem de Texto
+  mensagemTelefone: z.string().optional(),
+  mensagemResponsavel: z.string().optional(),
+  
+  documentoOrigemDados: z.string().optional(),
+  
+  // NOVO - especialidades (array)
+  especialidadesEnvolvidas: z.array(z.string())
+    .min(1, "Selecione ao menos uma especialidade"),
   
   numeroReferenciaOpous: z.string().optional(),
   
-  objetivoVistoria: z.string()
-    .min(20, "Descreva o objetivo com mais detalhes (mínimo 20 caracteres)")
-    .max(1000, "Objetivo muito longo"),
-  
   tipoVistoria: z.string()
     .min(1, "Selecione o tipo de vistoria"),
-}).refine((data) => {
+  
+  // REMOVIDO: objetivoVistoria
+})
+.refine((data) => {
   // Validação condicional: justificativa obrigatória se Prioritário
   if (data.classificacaoUrgencia === "Prioritário") {
     return data.justificativaUrgencia && data.justificativaUrgencia.length >= 20;
@@ -53,6 +76,26 @@ export const novaSolicitacaoSchema = z.object({
 }, {
   message: "Justificativa obrigatória para solicitações prioritárias (mínimo 20 caracteres)",
   path: ["justificativaUrgencia"],
+})
+.refine((data) => {
+  // Se tipo de documento é DIEx, validar campos obrigatórios
+  if (data.tipoDocumentoOrigem === "DIEx") {
+    return data.diexNumero && data.diexAssunto && data.diexData && data.diexOrganizacaoMilitar;
+  }
+  return true;
+}, {
+  message: "Preencha todos os campos obrigatórios do DIEx",
+  path: ["diexNumero"]
+})
+.refine((data) => {
+  // Se tipo de documento é Mensagem, validar campos obrigatórios
+  if (data.tipoDocumentoOrigem === "Mensagem de Texto") {
+    return data.mensagemTelefone && data.mensagemResponsavel;
+  }
+  return true;
+}, {
+  message: "Preencha todos os campos da mensagem de texto",
+  path: ["mensagemTelefone"]
 });
 
 export type NovaSolicitacaoFormData = z.infer<typeof novaSolicitacaoSchema>;

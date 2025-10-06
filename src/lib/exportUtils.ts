@@ -10,6 +10,9 @@ interface Solicitacao {
   status: string;
   data_solicitacao: string;
   classificacao_urgencia: string | null;
+  numero_vistoria: string | null; // NOVO
+  especialidades_envolvidas: string[] | null; // NOVO
+  tipo_documento_origem: string | null; // NOVO
   organizacoes?: {
     'Organização Militar': string;
     'Órgão Setorial Responsável': string;
@@ -25,13 +28,16 @@ const formatStatus = (status: string): string => {
   return statusMap[status] || status;
 };
 
-export const exportToExcel = (solicitacoes: Solicitacao[], filename: string = 'solicitacoes') => {
+export const exportToExcel = (solicitacoes: any[], filename: string = 'solicitacoes') => {
   // Formatar dados para Excel
   const formattedData = solicitacoes.map(sol => ({
     'ID': sol.id,
+    'Nº Vistoria': sol.numero_vistoria || 'N/A', // NOVO
     'Objeto': sol.objeto,
     'Status': formatStatus(sol.status),
     'Urgência': sol.classificacao_urgencia || 'Não especificada',
+    'Especialidades': sol.especialidades_envolvidas?.join(', ') || 'N/A', // NOVO
+    'Tipo Documento': sol.tipo_documento_origem || 'N/A', // NOVO
     'Organização': sol.organizacoes?.['Organização Militar'] || 'N/A',
     'Órgão Setorial': sol.organizacoes?.['Órgão Setorial Responsável'] || 'N/A',
     'Data Solicitação': format(new Date(sol.data_solicitacao), 'dd/MM/yyyy', { locale: ptBR }),
@@ -42,13 +48,16 @@ export const exportToExcel = (solicitacoes: Solicitacao[], filename: string = 's
   
   // Ajustar largura das colunas
   const columnWidths = [
-    { wch: 8 },  // ID
-    { wch: 40 }, // Objeto
-    { wch: 15 }, // Status
-    { wch: 15 }, // Urgência
-    { wch: 35 }, // Organização
-    { wch: 25 }, // Órgão Setorial
-    { wch: 15 }, // Data
+    { wch: 8 },   // ID
+    { wch: 15 },  // Nº Vistoria - NOVO
+    { wch: 40 },  // Objeto
+    { wch: 15 },  // Status
+    { wch: 15 },  // Urgência
+    { wch: 30 },  // Especialidades - NOVO
+    { wch: 20 },  // Tipo Documento - NOVO
+    { wch: 35 },  // Organização
+    { wch: 25 },  // Órgão Setorial
+    { wch: 15 },  // Data
   ];
   ws['!cols'] = columnWidths;
 
@@ -59,7 +68,7 @@ export const exportToExcel = (solicitacoes: Solicitacao[], filename: string = 's
   XLSX.writeFile(wb, `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 };
 
-export const exportToPDF = (solicitacoes: Solicitacao[], filename: string = 'solicitacoes') => {
+export const exportToPDF = (solicitacoes: any[], filename: string = 'solicitacoes') => {
   const doc = new jsPDF('l', 'mm', 'a4'); // landscape, mm, A4
   
   // Título

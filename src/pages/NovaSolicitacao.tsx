@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { CalendarIcon, Building2, Info, Loader2 } from "lucide-react";
+import { CalendarIcon, Building2, Info, Loader2, User } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { novaSolicitacaoSchema, NovaSolicitacaoFormData, validarArquivo } from "@/lib/formValidation";
@@ -43,6 +43,20 @@ const TIPOS_VISTORIA = [
   "Administrativa/Patrimonial",
 ];
 
+const ESPECIALIDADES = [
+  "Arquitetura",
+  "Engenharia Civil",
+  "Engenharia Elétrica",
+  "Engenharia Mecânica",
+  "Especialidade Indisponível"
+];
+
+const TIPOS_DOCUMENTO = [
+  { value: "DIEx", label: "DIEx" },
+  { value: "Mensagem de Texto", label: "Mensagem de Texto" },
+  { value: "Outros", label: "Outros" }
+];
+
 const NovaSolicitacao = () => {
   const navigate = useNavigate();
   const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
@@ -58,6 +72,18 @@ const NovaSolicitacao = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [siglaDaOM, setSiglaDaOM] = useState("");
   const [diretoriaResponsavel, setDiretoriaResponsavel] = useState("");
+  
+  // Novos estados para os novos campos
+  const [numeroVistoria, setNumeroVistoria] = useState("");
+  const [especialidades, setEspecialidades] = useState<string[]>([]);
+  const [tipoDocumentoOrigem, setTipoDocumentoOrigem] = useState("");
+  const [diexNumero, setDiexNumero] = useState("");
+  const [diexAssunto, setDiexAssunto] = useState("");
+  const [diexData, setDiexData] = useState<Date | undefined>(undefined);
+  const [diexOrganizacaoMilitar, setDiexOrganizacaoMilitar] = useState("");
+  const [mensagemTelefone, setMensagemTelefone] = useState("");
+  const [mensagemResponsavel, setMensagemResponsavel] = useState("");
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   const {
     register,
@@ -87,7 +113,30 @@ const NovaSolicitacao = () => {
 
   useEffect(() => {
     fetchOrganizacoes();
+    loadUserProfile();
   }, []);
+
+  const loadUserProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data: profile } = await supabase
+      .from("usuarios")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    
+    setUserProfile(profile);
+  };
+
+  const preencherContatoUsuarioLogado = () => {
+    if (userProfile) {
+      setValue("contatoNome", userProfile.nome || "");
+      setValue("contatoTelefone", userProfile.telefone || "");
+      setValue("contatoEmail", userProfile.email || "");
+      toast.info("Dados de contato preenchidos automaticamente");
+    }
+  };
 
   // Carregar rascunho ao montar
   useEffect(() => {
@@ -117,16 +166,7 @@ const NovaSolicitacao = () => {
     return () => clearTimeout(timer);
   }, [watchedFields]);
 
-  // Template de objetivo ao selecionar tipo de vistoria
-  useEffect(() => {
-    if (tipoVistoria && !watch("objetivoVistoria")) {
-      const template = TEMPLATES_OBJETIVO[tipoVistoria];
-      if (template) {
-        setValue("objetivoVistoria", template);
-        toast.info("Template de objetivo inserido. Você pode editá-lo.");
-      }
-    }
-  }, [tipoVistoria, setValue, watch]);
+  // Removido: Template de objetivo (campo objetivoVistoria foi removido)
 
   const fetchOrganizacoes = async () => {
     const { data, error } = await supabase
@@ -279,25 +319,40 @@ const NovaSolicitacao = () => {
         documentoOrigemUrl = publicUrl;
       }
 
+      // Determinar status baseado nas especialidades
+      let status = "pending";
+      if (data.especialidadesEnvolvidas.includes("Especialidade Indisponível")) {
+        status = "rejected";
+        toast.warning("Solicitação marcada como 'Especialidade não correspondente'");
+      }
+
       const { data: solicitacao, error: solicitacaoError } = await supabase
         .from("solicitacoes")
         .insert({
+          numero_vistoria: data.numeroVistoria,
           objeto: data.objeto,
           organizacao_id: parseInt(data.organizacaoId),
           usuario_id: user.id,
-          status: "pending",
+          status: status,
           endereco_completo: data.enderecoCompleto,
           contato_nome: data.contatoNome,
           contato_telefone: data.contatoTelefone,
-          contato_email: data.contatoEmail,
+          contato_email: data.contatoEmail || null,
           diretoria_responsavel: diretoriaResponsavel,
           data_solicitacao: data.dataSolicitacao.toISOString(),
           classificacao_urgencia: data.classificacaoUrgencia,
           justificativa_urgencia: data.justificativaUrgencia || null,
-          documento_origem_dados: data.documentoOrigemDados,
+          especialidades_envolvidas: data.especialidadesEnvolvidas,
+          tipo_documento_origem: data.tipoDocumentoOrigem,
+          diex_numero: data.diexNumero || null,
+          diex_assunto: data.diexAssunto || null,
+          diex_data: data.diexData || null,
+          diex_organizacao_militar: data.diexOrganizacaoMilitar || null,
+          mensagem_telefone: data.mensagemTelefone || null,
+          mensagem_responsavel: data.mensagemResponsavel || null,
+          documento_origem_dados: data.documentoOrigemDados || null,
           documento_origem_anexo: documentoOrigemUrl,
           numero_referencia_opous: data.numeroReferenciaOpous || null,
-          objetivo_vistoria: data.objetivoVistoria,
           tipo_vistoria: data.tipoVistoria,
         })
         .select()
@@ -358,6 +413,20 @@ const NovaSolicitacao = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* 1. NÚMERO DA VISTORIA - NOVO CAMPO PRIMEIRO */}
+            <div className="space-y-2">
+              <RequiredLabel htmlFor="numeroVistoria">Número da Vistoria</RequiredLabel>
+              <Input
+                id="numeroVistoria"
+                placeholder="Ex: VT-2025-001"
+                {...register("numeroVistoria")}
+                className={cn(errors.numeroVistoria && "border-destructive")}
+              />
+              {errors.numeroVistoria && (
+                <p className="text-sm text-destructive">{errors.numeroVistoria.message}</p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <RequiredLabel htmlFor="objeto">Objeto da Vistoria</RequiredLabel>
               <Textarea
@@ -539,20 +608,34 @@ const NovaSolicitacao = () => {
             )}
 
             <div className="space-y-4">
-              <Label>Contato do Responsável na OM Apoiada</Label>
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <RequiredLabel htmlFor="contatoNome">Nome</RequiredLabel>
-                  <Input
-                    id="contatoNome"
-                    placeholder="Nome completo do responsável"
-                    {...register("contatoNome")}
-                    className={cn(errors.contatoNome && "border-destructive")}
-                  />
-                  {errors.contatoNome && (
-                    <p className="text-sm text-destructive">{errors.contatoNome.message}</p>
-                  )}
-                </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Contato do Responsável na OM Apoiada</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={preencherContatoUsuarioLogado}
+                  className="gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  Usar meus dados
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <RequiredLabel htmlFor="contatoNome">Nome</RequiredLabel>
+                <Input
+                  id="contatoNome"
+                  placeholder="Nome completo do responsável"
+                  {...register("contatoNome")}
+                  className={cn(errors.contatoNome && "border-destructive")}
+                />
+                {errors.contatoNome && (
+                  <p className="text-sm text-destructive">{errors.contatoNome.message}</p>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <RequiredLabel htmlFor="contatoTelefone">Telefone</RequiredLabel>
                   <Input
@@ -568,8 +651,9 @@ const NovaSolicitacao = () => {
                     <p className="text-sm text-destructive">{errors.contatoTelefone.message}</p>
                   )}
                 </div>
+                
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor="contatoEmail">E-mail</RequiredLabel>
+                  <Label htmlFor="contatoEmail">E-mail (opcional)</Label>
                   <Input
                     id="contatoEmail"
                     type="email"
@@ -689,28 +773,6 @@ const NovaSolicitacao = () => {
                 placeholder="Número de referência no OPOUS (opcional)"
                 {...register("numeroReferenciaOpous")}
               />
-            </div>
-
-            <div className="space-y-2">
-              <RequiredLabel htmlFor="objetivo">Objetivo da Vistoria</RequiredLabel>
-              <Textarea
-                id="objetivo"
-                placeholder="Descreva o objetivo da vistoria..."
-                {...register("objetivoVistoria")}
-                className={cn(
-                  "min-h-[100px]",
-                  errors.objetivoVistoria && "border-destructive focus-visible:ring-destructive"
-                )}
-              />
-              {errors.objetivoVistoria && (
-                <p className="text-sm text-destructive">{errors.objetivoVistoria.message}</p>
-              )}
-              {tipoVistoria && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-                  Template inserido automaticamente. Você pode editá-lo conforme necessário.
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">

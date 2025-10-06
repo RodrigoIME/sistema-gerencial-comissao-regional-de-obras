@@ -48,6 +48,16 @@ interface SolicitacaoDetalhes {
   contato_nome: string | null;
   contato_telefone: string | null;
   contato_email: string | null;
+  // Novos campos
+  numero_vistoria: string | null;
+  especialidades_envolvidas: string[] | null;
+  tipo_documento_origem: string | null;
+  diex_numero: string | null;
+  diex_assunto: string | null;
+  diex_data: string | null;
+  diex_organizacao_militar: string | null;
+  mensagem_telefone: string | null;
+  mensagem_responsavel: string | null;
   organizacoes?: {
     nome: string;
     diretoria: string;
@@ -109,12 +119,22 @@ const SolicitacaoDetalhes = () => {
 
       if (solicitacaoRes.error) throw solicitacaoRes.error;
 
-      const mappedSolicitacao = {
+      const mappedSolicitacao: SolicitacaoDetalhes = {
         ...solicitacaoRes.data,
         organizacoes: solicitacaoRes.data.organizacoes ? {
           nome: solicitacaoRes.data.organizacoes["Organização Militar"],
           diretoria: solicitacaoRes.data.organizacoes["Órgão Setorial Responsável"],
         } : undefined,
+        // Garantir que os novos campos existam (mesmo que sejam null) - usar 'as any' temporariamente
+        numero_vistoria: (solicitacaoRes.data as any).numero_vistoria || null,
+        especialidades_envolvidas: (solicitacaoRes.data as any).especialidades_envolvidas || null,
+        tipo_documento_origem: (solicitacaoRes.data as any).tipo_documento_origem || null,
+        diex_numero: (solicitacaoRes.data as any).diex_numero || null,
+        diex_assunto: (solicitacaoRes.data as any).diex_assunto || null,
+        diex_data: (solicitacaoRes.data as any).diex_data || null,
+        diex_organizacao_militar: (solicitacaoRes.data as any).diex_organizacao_militar || null,
+        mensagem_telefone: (solicitacaoRes.data as any).mensagem_telefone || null,
+        mensagem_responsavel: (solicitacaoRes.data as any).mensagem_responsavel || null,
       };
 
       setSolicitacao(mappedSolicitacao);
