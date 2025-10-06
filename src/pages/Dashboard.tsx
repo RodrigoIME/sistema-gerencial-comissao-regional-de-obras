@@ -6,7 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, CheckCircle2, Clock, Paperclip, CalendarIcon, Filter, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { FileText, CheckCircle2, Clock, Paperclip, CalendarIcon, Filter, TrendingUp, ChevronDown, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfYear, endOfYear } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -36,9 +39,11 @@ const Dashboard = () => {
   const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [omData, setOMData] = useState<any[]>([]);
+  const [allOMData, setAllOMData] = useState<any[]>([]);
   const [orgaoSetorialData, setOrgaoSetorialData] = useState<any[]>([]);
   const [isLoadingOrganizacoes, setIsLoadingOrganizacoes] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isOMTableOpen, setIsOMTableOpen] = useState(false);
 
   // Paleta de cores para os gráficos
   const OM_COLORS = [
@@ -232,7 +237,7 @@ const Dashboard = () => {
       });
 
       const total = filtered.length;
-      const chartData = organizacoes
+      const allData = organizacoes
         .filter((org) => omCounts[org.id])
         .map((org) => ({
           om: org["Sigla da OM"],
@@ -242,8 +247,26 @@ const Dashboard = () => {
         }))
         .sort((a, b) => b.value - a.value);
 
-      console.log('✅ [Dashboard] Dados por OM processados:', chartData.length, 'organizações com dados');
+      // Separar top 10 e outros
+      const top10 = allData.slice(0, 10);
+      const outros = allData.slice(10);
+      
+      // Criar entrada "Outros" se houver mais de 10 OMs
+      const chartData = [...top10];
+      if (outros.length > 0) {
+        const outrosTotal = outros.reduce((sum, item) => sum + item.value, 0);
+        const outrosPercentage = total > 0 ? ((outrosTotal / total) * 100).toFixed(1) : '0.0';
+        chartData.push({
+          om: `Outros (${outros.length})`,
+          name: `Outras ${outros.length} Organizações Militares`,
+          value: outrosTotal,
+          percentage: outrosPercentage,
+        });
+      }
+
+      console.log('✅ [Dashboard] Dados por OM processados:', allData.length, 'organizações (mostrando top 10)');
       setOMData(chartData);
+      setAllOMData(allData);
     } catch (error) {
       console.error("❌ [Dashboard] Erro ao buscar dados por OM:", error);
     }
@@ -525,9 +548,16 @@ const Dashboard = () => {
         {/* Gráfico por OM */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle>Vistorias por Organização Militar</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Vistorias por Organização Militar</span>
+              {allOMData.length > 0 && (
+                <Badge variant="secondary">
+                  {allOMData.length} OM{allOMData.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {isLoadingData ? (
               <div className="space-y-3">
                 <Skeleton className="h-8 w-full" />
@@ -541,33 +571,106 @@ const Dashboard = () => {
                 <p>Nenhum dado disponível para o período selecionado</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={omData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="om" />
-                  <YAxis />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--background))", 
-                      border: "1px solid hsl(var(--border))" 
-                    }}
-                    formatter={(value: any, name: any, props: any) => [
-                      `${value} vistorias (${props.payload.percentage}%)`,
-                      props.payload.name
-                    ]}
-                  />
-                  <Bar dataKey="value">
-                    <LabelList 
-                      dataKey="percentage" 
-                      position="top" 
-                      formatter={(value: any) => `${value}%`}
+              <>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={omData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="om" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={0}
+                      tick={{ fontSize: 11 }}
                     />
-                    {omData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={OM_COLORS[index % OM_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                    <YAxis />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--background))", 
+                        border: "1px solid hsl(var(--border))" 
+                      }}
+                      formatter={(value: any, name: any, props: any) => [
+                        `${value} vistorias (${props.payload.percentage}%)`,
+                        props.payload.name
+                      ]}
+                    />
+                    <Bar dataKey="value">
+                      <LabelList 
+                        dataKey="percentage" 
+                        position="top" 
+                        formatter={(value: any) => `${value}%`}
+                        style={{ fontSize: 11 }}
+                      />
+                      {omData.map((entry, index) => {
+                        const isOutros = entry.om.startsWith('Outros');
+                        const color = isOutros ? '#9CA3AF' : OM_COLORS[index % OM_COLORS.length];
+                        return <Cell key={`cell-${index}`} fill={color} />;
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Tabela Expansível */}
+                {allOMData.length > 10 && (
+                  <Collapsible open={isOMTableOpen} onOpenChange={setIsOMTableOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                      >
+                        {isOMTableOpen ? 'Ocultar' : 'Ver'} todas as {allOMData.length} OMs
+                        <ChevronDown 
+                          className={cn(
+                            "ml-2 h-4 w-4 transition-transform",
+                            isOMTableOpen && "rotate-180"
+                          )} 
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-4">
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <Table>
+                            <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur">
+                              <TableRow>
+                                <TableHead className="w-16 text-center">#</TableHead>
+                                <TableHead>Sigla</TableHead>
+                                <TableHead>Organização Militar</TableHead>
+                                <TableHead className="text-right">Vistorias</TableHead>
+                                <TableHead className="text-right">%</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {allOMData.map((item, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="text-center font-medium">
+                                    {index < 3 ? (
+                                      <Trophy className={cn(
+                                        "h-4 w-4 inline",
+                                        index === 0 && "text-yellow-500",
+                                        index === 1 && "text-gray-400",
+                                        index === 2 && "text-amber-600"
+                                      )} />
+                                    ) : (
+                                      index + 1
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="font-medium">{item.om}</TableCell>
+                                  <TableCell className="text-muted-foreground">{item.name}</TableCell>
+                                  <TableCell className="text-right font-medium">{item.value}</TableCell>
+                                  <TableCell className="text-right">
+                                    <Badge variant="secondary">{item.percentage}%</Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
