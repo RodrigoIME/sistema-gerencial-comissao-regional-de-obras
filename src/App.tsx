@@ -14,6 +14,11 @@ import EditarSolicitacao from "./pages/EditarSolicitacao";
 import Admin from "./pages/Admin";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
+import ProjetosDashboard from "./pages/projetos/Dashboard";
+import ProjetosLista from "./pages/projetos/Lista";
+import NovoProjeto from "./pages/projetos/Novo";
+import ProjetoDetalhes from "./pages/projetos/Detalhes";
+import EditarProjeto from "./pages/projetos/Editar";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +39,11 @@ const App = () => (
         <Route path="/solicitacao/:id/editar" element={<EditarSolicitacao />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/configuracoes" element={<Configuracoes />} />
+        <Route path="/projetos" element={<ProjetosDashboard />} />
+        <Route path="/projetos/lista" element={<ProjetosLista />} />
+        <Route path="/projetos/novo" element={<NovoProjeto />} />
+        <Route path="/projetos/:id" element={<ProjetoDetalhes />} />
+        <Route path="/projetos/:id/editar" element={<EditarProjeto />} />
         <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

@@ -193,24 +193,74 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* MÓDULO PROJETOS (Placeholder) */}
+        {/* MÓDULO PROJETOS */}
         {hasModule('projetos') && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Projetos</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton disabled>
-                    <Briefcase className="text-blue-500" />
-                    <span>Projetos</span>
-                    {!isCollapsedSidebar && (
-                      <Badge variant="secondary" className="text-xs ml-auto">Em Breve</Badge>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <>
+            {isCollapsedSidebar ? (
+              <SidebarGroup>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isGroupActive(['/projetos', '/projetos/lista', '/projetos/novo'])}
+                        tooltip="Projetos"
+                      >
+                        <NavLink to="/projetos">
+                          <Briefcase className={cn(
+                            "text-blue-500 transition-all",
+                            isGroupActive(['/projetos', '/projetos/lista', '/projetos/novo']) && "drop-shadow-md"
+                          )} />
+                          <span>Projetos</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ) : (
+              <SidebarGroup>
+                <SidebarGroupLabel>Projetos</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/projetos')}>
+                        <NavLink to="/projetos" end>
+                          <Briefcase className={cn(
+                            "text-blue-500 transition-all",
+                            isActive('/projetos') && "drop-shadow-md"
+                          )} />
+                          <span>Dashboard</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/projetos/lista')}>
+                        <NavLink to="/projetos/lista" end>
+                          <FileStack className={cn(
+                            "text-indigo-500 transition-all",
+                            isActive('/projetos/lista') && "drop-shadow-md"
+                          )} />
+                          <span>Projetos Cadastrados</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/projetos/novo')}>
+                        <NavLink to="/projetos/novo" end>
+                          <FilePlus className={cn(
+                            "text-cyan-500 transition-all",
+                            isActive('/projetos/novo') && "drop-shadow-md"
+                          )} />
+                          <span>Novo Projeto</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+          </>
         )}
 
         {/* MÓDULO FISCALIZAÇÃO (Placeholder) */}

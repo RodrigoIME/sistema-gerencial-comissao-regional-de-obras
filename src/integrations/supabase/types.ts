@@ -144,6 +144,201 @@ export type Database = {
         }
         Relationships: []
       }
+      projetos: {
+        Row: {
+          acao_orcamentaria: string
+          arquiteto: string | null
+          created_at: string | null
+          data_conclusao: string | null
+          data_lancamento_opus: string | null
+          diretoria_responsavel: string
+          engenheiro_civil: string | null
+          engenheiro_eletricista: string | null
+          engenheiro_mecanico: string | null
+          esta_no_dfd: boolean | null
+          esta_no_pca_2025: boolean | null
+          foi_lancado_opus: boolean | null
+          id: string
+          motivo_cancelamento: string | null
+          motivo_pausa: string | null
+          natureza_objeto: string
+          numero_opus: string
+          objeto: string
+          observacoes_iniciais: string | null
+          om_executora: string
+          organizacao_id: number | null
+          plano_orcamentario: string
+          prazo_inicial: string | null
+          prazo_previsto: string | null
+          prazo_real_conclusao: string | null
+          prioridade: string | null
+          pro: string | null
+          recursos_previstos_2025: number
+          status: string | null
+          updated_at: string | null
+          usuario_responsavel_id: string | null
+          valor_estimado_dfd: number
+        }
+        Insert: {
+          acao_orcamentaria: string
+          arquiteto?: string | null
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_lancamento_opus?: string | null
+          diretoria_responsavel: string
+          engenheiro_civil?: string | null
+          engenheiro_eletricista?: string | null
+          engenheiro_mecanico?: string | null
+          esta_no_dfd?: boolean | null
+          esta_no_pca_2025?: boolean | null
+          foi_lancado_opus?: boolean | null
+          id?: string
+          motivo_cancelamento?: string | null
+          motivo_pausa?: string | null
+          natureza_objeto: string
+          numero_opus: string
+          objeto: string
+          observacoes_iniciais?: string | null
+          om_executora: string
+          organizacao_id?: number | null
+          plano_orcamentario: string
+          prazo_inicial?: string | null
+          prazo_previsto?: string | null
+          prazo_real_conclusao?: string | null
+          prioridade?: string | null
+          pro?: string | null
+          recursos_previstos_2025: number
+          status?: string | null
+          updated_at?: string | null
+          usuario_responsavel_id?: string | null
+          valor_estimado_dfd: number
+        }
+        Update: {
+          acao_orcamentaria?: string
+          arquiteto?: string | null
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_lancamento_opus?: string | null
+          diretoria_responsavel?: string
+          engenheiro_civil?: string | null
+          engenheiro_eletricista?: string | null
+          engenheiro_mecanico?: string | null
+          esta_no_dfd?: boolean | null
+          esta_no_pca_2025?: boolean | null
+          foi_lancado_opus?: boolean | null
+          id?: string
+          motivo_cancelamento?: string | null
+          motivo_pausa?: string | null
+          natureza_objeto?: string
+          numero_opus?: string
+          objeto?: string
+          observacoes_iniciais?: string | null
+          om_executora?: string
+          organizacao_id?: number | null
+          plano_orcamentario?: string
+          prazo_inicial?: string | null
+          prazo_previsto?: string | null
+          prazo_real_conclusao?: string | null
+          prioridade?: string | null
+          pro?: string | null
+          recursos_previstos_2025?: number
+          status?: string | null
+          updated_at?: string | null
+          usuario_responsavel_id?: string | null
+          valor_estimado_dfd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projetos_anexos: {
+        Row: {
+          id: string
+          nome_arquivo: string
+          projeto_id: string
+          tamanho: number | null
+          tipo: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          id?: string
+          nome_arquivo: string
+          projeto_id: string
+          tamanho?: number | null
+          tipo?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          id?: string
+          nome_arquivo?: string
+          projeto_id?: string
+          tamanho?: number | null
+          tipo?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_anexos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projetos_historico: {
+        Row: {
+          acao: string
+          campo_alterado: string | null
+          created_at: string | null
+          id: string
+          projeto_id: string
+          usuario_id: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          acao: string
+          campo_alterado?: string | null
+          created_at?: string | null
+          id?: string
+          projeto_id: string
+          usuario_id?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          acao?: string
+          campo_alterado?: string | null
+          created_at?: string | null
+          id?: string
+          projeto_id?: string
+          usuario_id?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_historico_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solicitacoes: {
         Row: {
           classificacao_urgencia: string | null
