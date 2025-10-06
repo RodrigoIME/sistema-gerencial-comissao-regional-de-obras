@@ -42,11 +42,14 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    // Aguarda organizacoes serem carregadas antes de buscar dados
+    if (organizacoes.length === 0) return;
+
     fetchStats();
     fetchMonthlyData();
     fetchOMData();
     fetchOrgaoSetorialData();
-  }, [startDate, endDate, selectedOM, selectedOrgaoSetorial]);
+  }, [startDate, endDate, selectedOM, selectedOrgaoSetorial, organizacoes]);
 
   const fetchOrganizacoes = async () => {
     const { data, error } = await supabase
