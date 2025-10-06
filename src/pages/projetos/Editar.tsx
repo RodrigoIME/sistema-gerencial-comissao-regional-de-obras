@@ -13,6 +13,7 @@ import { Step1Basico } from "@/components/projetos/forms/Step1Basico";
 import { Step2Orcamento } from "@/components/projetos/forms/Step2Orcamento";
 import { Step3Equipe } from "@/components/projetos/forms/Step3Equipe";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AnexosManager } from "@/components/projetos/AnexosManager";
 
 export default function EditarProjeto() {
   const { id } = useParams();
@@ -162,10 +163,11 @@ export default function EditarProjeto() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs defaultValue="basico" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basico">Informações Básicas</TabsTrigger>
               <TabsTrigger value="orcamento">Dados Orçamentários</TabsTrigger>
               <TabsTrigger value="equipe">Equipe Técnica</TabsTrigger>
+              <TabsTrigger value="anexos">Anexos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basico">
@@ -197,6 +199,17 @@ export default function EditarProjeto() {
                 </CardHeader>
                 <CardContent>
                   <Step3Equipe form={form} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="anexos">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Anexos do Projeto</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {id && <AnexosManager projetoId={id} mode="edit" />}
                 </CardContent>
               </Card>
             </TabsContent>

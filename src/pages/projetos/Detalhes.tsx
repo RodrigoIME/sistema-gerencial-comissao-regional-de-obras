@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AnexosManager } from "@/components/projetos/AnexosManager";
+import { exportProjetoToPDF } from "@/lib/projetoExportUtils";
 
 export default function ProjetoDetalhes() {
   const { id } = useParams();
@@ -132,7 +134,7 @@ export default function ProjetoDetalhes() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Mudar Status
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => exportProjetoToPDF(projeto)}>
               <FileText className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>
@@ -357,7 +359,7 @@ export default function ProjetoDetalhes() {
               <CardTitle>Anexos</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Em desenvolvimento...</p>
+              {id && <AnexosManager projetoId={id} mode="view" />}
             </CardContent>
           </Card>
         </TabsContent>

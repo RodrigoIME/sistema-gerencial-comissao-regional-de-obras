@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,31 @@ import { Form } from "@/components/ui/form";
 import { Step1Basico } from "@/components/projetos/forms/Step1Basico";
 import { Step2Orcamento } from "@/components/projetos/forms/Step2Orcamento";
 import { Step3Equipe } from "@/components/projetos/forms/Step3Equipe";
+import { 
+  salvarRascunhoProjeto, 
+  carregarRascunhoProjeto, 
+  limparRascunhoProjeto, 
+  temRascunhoProjeto 
+} from "@/lib/draftStorage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 export default function NovoProjeto() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [draftData, setDraftData] = useState<any>(null);
 
   const form = useForm<ProjetoFormData>({
     resolver: zodResolver(projetoSchema),
@@ -30,6 +49,51 @@ export default function NovoProjeto() {
     },
     mode: "onChange",
   });
+
+  // Auto-save com debounce
+  const watchedData = useWatch({ control: form.control });
+
+  useEffect(() => {
+    // Verificar se há rascunho ao montar
+    if (temRascunhoProjeto()) {
+      const rascunho = carregarRascunhoProjeto();
+      if (rascunho) {
+        setDraftData(rascunho);
+        setShowDraftDialog(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Auto-save com debounce de 3 segundos
+    const timeoutId = setTimeout(() => {
+      if (watchedData && Object.keys(watchedData).length > 0) {
+        salvarRascunhoProjeto(watchedData);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [watchedData]);
+
+  const handleRestoreDraft = () => {
+    if (draftData?.data) {
+      form.reset(draftData.data);
+      toast({
+        title: "Rascunho restaurado",
+        description: "Continue de onde você parou",
+      });
+    }
+    setShowDraftDialog(false);
+  };
+
+  const handleDiscardDraft = () => {
+    limparRascunhoProjeto();
+    setShowDraftDialog(false);
+    toast({
+      title: "Rascunho descartado",
+      description: "Começando do zero",
+    });
+  };
 
   const validateStep = async (step: number): Promise<boolean> => {
     const fieldsToValidate: Record<number, (keyof ProjetoFormData)[]> = {
@@ -80,6 +144,9 @@ export default function NovoProjeto() {
         usuario_id: user.id,
         acao: "Projeto criado",
       });
+
+      // Limpar rascunho após sucesso
+      limparRascunhoProjeto();
 
       toast({
         title: "Projeto criado com sucesso!",
@@ -172,6 +239,26 @@ export default function NovoProjeto() {
         </form>
       </Form>
 
+      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rascunho encontrado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encontramos um rascunho salvo em{" "}
+              {draftData?.timestamp && format(new Date(draftData.timestamp), "dd/MM/yyyy 'às' HH:mm")}.
+              Deseja continuar de onde parou?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardDraft}>
+              Descartar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreDraft}>
+              Restaurar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

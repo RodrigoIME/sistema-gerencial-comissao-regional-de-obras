@@ -41,3 +41,48 @@ export const limparRascunho = (): void => {
 export const temRascunho = (): boolean => {
   return localStorage.getItem(DRAFT_KEY) !== null;
 };
+
+// Funções para rascunhos de projetos
+const PROJETO_DRAFT_KEY = 'novoProjetoDraft';
+const PROJETO_DRAFT_TIMESTAMP_KEY = 'novoProjetoDraftTimestamp';
+
+export const salvarRascunhoProjeto = (data: any): void => {
+  try {
+    localStorage.setItem(PROJETO_DRAFT_KEY, JSON.stringify(data));
+    localStorage.setItem(PROJETO_DRAFT_TIMESTAMP_KEY, new Date().toISOString());
+  } catch (error) {
+    console.error('Erro ao salvar rascunho de projeto:', error);
+  }
+};
+
+export const carregarRascunhoProjeto = (): { data: any; timestamp: string } | null => {
+  try {
+    const draft = localStorage.getItem(PROJETO_DRAFT_KEY);
+    const timestamp = localStorage.getItem(PROJETO_DRAFT_TIMESTAMP_KEY);
+    
+    if (draft && timestamp) {
+      return {
+        data: JSON.parse(draft),
+        timestamp
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erro ao carregar rascunho de projeto:', error);
+    return null;
+  }
+};
+
+export const limparRascunhoProjeto = (): void => {
+  try {
+    localStorage.removeItem(PROJETO_DRAFT_KEY);
+    localStorage.removeItem(PROJETO_DRAFT_TIMESTAMP_KEY);
+  } catch (error) {
+    console.error('Erro ao limpar rascunho de projeto:', error);
+  }
+};
+
+export const temRascunhoProjeto = (): boolean => {
+  return localStorage.getItem(PROJETO_DRAFT_KEY) !== null;
+};
