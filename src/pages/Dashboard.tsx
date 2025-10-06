@@ -176,31 +176,38 @@ const Dashboard = () => {
 
       const filtered = applyFilters(data || []);
 
-      // Agregar por status para PieChart
-      const statusCount = {
-        Recebidas: 0,
-        Finalizadas: 0,
-        "Em Execução": 0,
-      };
-
+      // Agregar por mês (Recebidas vs Realizadas)
+      const monthlyStats: Record<string, { Recebidas: number; Realizadas: number }> = {};
+      
       filtered.forEach((item: any) => {
-        statusCount.Recebidas++;
-        if (item.status === "completed") statusCount.Finalizadas++;
-        if (item.status === "in_progress") statusCount["Em Execução"]++;
+        const date = new Date(item.data_solicitacao);
+        const monthKey = format(date, "MMM/yy");
+        
+        if (!monthlyStats[monthKey]) {
+          monthlyStats[monthKey] = { Recebidas: 0, Realizadas: 0 };
+        }
+        
+        monthlyStats[monthKey].Recebidas++;
+        if (item.status === "completed") {
+          monthlyStats[monthKey].Realizadas++;
+        }
       });
 
-      // Converter para formato de PieChart com percentuais
-      const total = filtered.length;
-      const pieData = Object.entries(statusCount)
-        .filter(([_, value]) => value > 0)
-        .map(([name, value]) => ({
-          name,
-          value,
-          percentage: total > 0 ? ((value / total) * 100).toFixed(1) : '0.0'
-        }));
+      // Converter para array ordenado por data
+      const chartData = Object.entries(monthlyStats)
+        .map(([mes, counts]) => ({
+          mes,
+          Recebidas: counts.Recebidas,
+          Realizadas: counts.Realizadas,
+        }))
+        .sort((a, b) => {
+          const [aMonth, aYear] = a.mes.split('/');
+          const [bMonth, bYear] = b.mes.split('/');
+          return new Date(`20${aYear}-${aMonth}-01`).getTime() - new Date(`20${bYear}-${bMonth}-01`).getTime();
+        });
 
-      console.log('✅ [Dashboard] Dados mensais processados:', pieData);
-      setMonthlyData(pieData);
+      console.log('✅ [Dashboard] Dados mensais processados:', chartData);
+      setMonthlyData(chartData);
     } catch (error) {
       console.error("❌ [Dashboard] Erro ao buscar dados mensais:", error);
     }
@@ -494,34 +501,20 @@ const Dashboard = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={monthlyData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name} (${percentage}%)`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {monthlyData.map((entry, index) => {
-                    const colors = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))'];
-                    return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                  })}
-                </Pie>
+              <BarChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: "hsl(var(--background))", 
                     border: "1px solid hsl(var(--border))" 
                   }}
-                  formatter={(value: any, name: any, props: any) => [
-                    `${value} vistorias (${props.payload.percentage}%)`,
-                    name
-                  ]}
                 />
                 <Legend />
-              </PieChart>
+                <Bar dataKey="Recebidas" fill="#8B5CF6" />
+                <Bar dataKey="Realizadas" fill="#10B981" />
+              </BarChart>
             </ResponsiveContainer>
           )}
         </CardContent>
@@ -549,21 +542,10 @@ const Dashboard = () => {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={omData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ om, percentage }) => `${om} (${percentage}%)`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {omData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={OM_COLORS[index % OM_COLORS.length]} />
-                    ))}
-                  </Pie>
+                <BarChart data={omData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="om" />
+                  <YAxis />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: "hsl(var(--background))", 
@@ -574,8 +556,17 @@ const Dashboard = () => {
                       props.payload.name
                     ]}
                   />
-                  <Legend />
-                </PieChart>
+                  <Bar dataKey="value">
+                    <LabelList 
+                      dataKey="percentage" 
+                      position="top" 
+                      formatter={(value: any) => `${value}%`}
+                    />
+                    {omData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={OM_COLORS[index % OM_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -600,7 +591,7 @@ const Dashboard = () => {
                 <p>Nenhum dado disponível para o período selecionado</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={orgaoSetorialData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="orgao" />
@@ -621,9 +612,10 @@ const Dashboard = () => {
                       position="top" 
                       formatter={(value: any) => `${value}%`}
                     />
-                    {orgaoSetorialData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={ORGAO_COLORS[index % ORGAO_COLORS.length]} />
-                    ))}
+                    {orgaoSetorialData.map((entry, index) => {
+                      const cor = entry.orgao === 'DGP' ? '#9CA3AF' : ORGAO_COLORS[index % ORGAO_COLORS.length];
+                      return <Cell key={`cell-${index}`} fill={cor} />;
+                    })}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
