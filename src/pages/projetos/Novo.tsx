@@ -9,8 +9,11 @@ import { ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { projetoSchema, type ProjetoFormData } from "@/lib/projectValidation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Form } from "@/components/ui/form";
+import { Step1Basico } from "@/components/projetos/forms/Step1Basico";
+import { Step2Orcamento } from "@/components/projetos/forms/Step2Orcamento";
+import { Step3Equipe } from "@/components/projetos/forms/Step3Equipe";
 
-// Placeholder - implementação completa do formulário multi-step virá na próxima etapa
 export default function NovoProjeto() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,7 +28,27 @@ export default function NovoProjeto() {
       esta_no_dfd: false,
       foi_lancado_opus: false,
     },
+    mode: "onChange",
   });
+
+  const validateStep = async (step: number): Promise<boolean> => {
+    const fieldsToValidate: Record<number, (keyof ProjetoFormData)[]> = {
+      1: ["numero_opus", "objeto", "organizacao_id", "diretoria_responsavel", "om_executora", "natureza_objeto"],
+      2: ["valor_estimado_dfd", "plano_orcamentario", "acao_orcamentaria", "recursos_previstos_2025"],
+      3: [], // Step 3 tem apenas campos opcionais
+    };
+
+    const fields = fieldsToValidate[step];
+    const result = await form.trigger(fields);
+    return result;
+  };
+
+  const handleNext = async () => {
+    const isValid = await validateStep(currentStep);
+    if (isValid) {
+      setCurrentStep(Math.min(totalSteps, currentStep + 1));
+    }
+  };
 
   const onSubmit = async (data: ProjetoFormData) => {
     try {
@@ -106,54 +129,49 @@ export default function NovoProjeto() {
         <Progress value={progress} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {currentStep === 1 && "Informações Básicas"}
-            {currentStep === 2 && "Dados Orçamentários"}
-            {currentStep === 3 && "Equipe Técnica e Observações"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <p>Formulário completo em desenvolvimento...</p>
-            <p className="text-sm mt-2">
-              Esta é uma versão placeholder. O formulário multi-step completo será
-              implementado na próxima etapa.
-            </p>
-            <Button
-              className="mt-4"
-              onClick={() => navigate("/projetos")}
-              variant="outline"
-            >
-              Voltar ao Dashboard
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {currentStep === 1 && "Informações Básicas"}
+                {currentStep === 2 && "Dados Orçamentários"}
+                {currentStep === 3 && "Equipe Técnica e Observações"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {currentStep === 1 && <Step1Basico form={form} />}
+              {currentStep === 2 && <Step2Orcamento form={form} />}
+              {currentStep === 3 && <Step3Equipe form={form} />}
+            </CardContent>
+          </Card>
 
-      {/* Navegação entre etapas */}
-      <div className="flex justify-between mt-6">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-          disabled={currentStep === 1}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Anterior
-        </Button>
-        {currentStep < totalSteps ? (
-          <Button onClick={() => setCurrentStep(Math.min(totalSteps, currentStep + 1))}>
-            Próximo
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        ) : (
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={loading}>
-            <Save className="h-4 w-4 mr-2" />
-            {loading ? "Salvando..." : "Salvar Projeto"}
-          </Button>
-        )}
-      </div>
+          {/* Navegação entre etapas */}
+          <div className="flex justify-between mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+              disabled={currentStep === 1 || loading}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Anterior
+            </Button>
+            {currentStep < totalSteps ? (
+              <Button type="button" onClick={handleNext} disabled={loading}>
+                Próximo
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button type="submit" disabled={loading}>
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? "Salvando..." : "Criar Projeto"}
+              </Button>
+            )}
+          </div>
+        </form>
+      </Form>
+
     </div>
   );
 }
