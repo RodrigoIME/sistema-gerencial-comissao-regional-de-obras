@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,41 +8,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, CheckCircle2, Clock, Paperclip, CalendarIcon, Filter, TrendingUp, ChevronDown, Trophy } from "lucide-react";
-import { toast } from "sonner";
+import { FileText, CheckCircle2, Clock, CalendarIcon, Filter, TrendingUp, ChevronDown, Trophy } from "lucide-react";
 import { format, startOfYear, endOfYear } from "date-fns";
 import { cn } from "@/lib/utils";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-interface Organizacao {
-  id: number;
-  "Organização Militar": string;
-  "Órgão Setorial Responsável": string;
-  "Sigla da OM": string;
-}
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Cell } from "recharts";
+import { useOrganizacoes } from "@/hooks/useOrganizacoes";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
+  const [startDate, setStartDate] = useState<Date>(startOfYear(new Date()));
+  const [endDate, setEndDate] = useState<Date>(endOfYear(new Date()));
+  const [selectedOM, setSelectedOM] = useState<string>("all");
+  const [selectedOrgaoSetorial, setSelectedOrgaoSetorial] = useState<string>("all");
+  const [isOMTableOpen, setIsOMTableOpen] = useState(false);
+
+  // Buscar organizações com React Query
+  const { data: organizacoes = [], isLoading: isLoadingOrganizacoes } = useOrganizacoes();
+
+  // Buscar dados do dashboard com React Query
+  const { 
+    data: dashboardData,
+    isLoading: isLoadingData 
+  } = useDashboardData(
+    { startDate, endDate, selectedOM, selectedOrgaoSetorial },
+    organizacoes
+  );
+
+  // Extrair dados do hook ou usar valores padrão
+  const stats = dashboardData?.stats || {
     totalSolicitacoes: 0,
     totalVistorias: 0,
     totalAnexos: 0,
     pendentes: 0,
     finalizadas: 0,
     emExecucao: 0,
-  });
-
-  const [startDate, setStartDate] = useState<Date>(startOfYear(new Date()));
-  const [endDate, setEndDate] = useState<Date>(endOfYear(new Date()));
-  const [selectedOM, setSelectedOM] = useState<string>("all");
-  const [selectedOrgaoSetorial, setSelectedOrgaoSetorial] = useState<string>("all");
-  const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [omData, setOMData] = useState<any[]>([]);
-  const [allOMData, setAllOMData] = useState<any[]>([]);
-  const [orgaoSetorialData, setOrgaoSetorialData] = useState<any[]>([]);
-  const [isLoadingOrganizacoes, setIsLoadingOrganizacoes] = useState(true);
-  const [isLoadingData, setIsLoadingData] = useState(false);
-  const [isOMTableOpen, setIsOMTableOpen] = useState(false);
+  };
+  const monthlyData = dashboardData?.monthlyData || [];
+  const omData = dashboardData?.omData || [];
+  const allOMData = dashboardData?.allOMData || [];
+  const orgaoSetorialData = dashboardData?.orgaoSetorialData || [];
 
   // Paleta de cores para os gráficos
   const OM_COLORS = [
@@ -54,263 +57,6 @@ const Dashboard = () => {
   const ORGAO_COLORS = [
     '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444',
   ];
-
-  useEffect(() => {
-    fetchOrganizacoes();
-  }, []);
-
-  useEffect(() => {
-    // Aguarda organizacoes serem carregadas antes de buscar dados
-    if (organizacoes.length === 0) return;
-
-    console.log('🔄 [Dashboard] Iniciando carregamento de dados', {
-      organizacoesCount: organizacoes.length,
-      filtros: {
-        startDate: startDate?.toISOString(),
-        endDate: endDate?.toISOString(),
-        selectedOM,
-        selectedOrgaoSetorial
-      }
-    });
-
-    const fetchAllData = async () => {
-      setIsLoadingData(true);
-      try {
-        await Promise.all([
-          fetchStats(),
-          fetchMonthlyData(),
-          fetchOMData(),
-          fetchOrgaoSetorialData(),
-        ]);
-        console.log('✅ [Dashboard] Dados carregados com sucesso');
-      } catch (error) {
-        console.error('❌ [Dashboard] Erro ao carregar dados:', error);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchAllData();
-  }, [startDate, endDate, selectedOM, selectedOrgaoSetorial, organizacoes]);
-
-  const fetchOrganizacoes = async () => {
-    console.log('🔄 [Dashboard] Carregando organizações...');
-    setIsLoadingOrganizacoes(true);
-    try {
-      const { data, error } = await supabase
-        .from("organizacoes")
-        .select("*")
-        .order('"Organização Militar"');
-
-      if (error) throw error;
-      console.log('✅ [Dashboard] Organizações carregadas:', data?.length || 0);
-      setOrganizacoes(data || []);
-    } catch (error) {
-      console.error('❌ [Dashboard] Erro ao carregar organizações:', error);
-      toast.error("Erro ao carregar organizações");
-    } finally {
-      setIsLoadingOrganizacoes(false);
-    }
-  };
-
-  const applyFilters = (data: any[]) => {
-    const filtered = data.filter((item) => {
-      const itemDate = new Date(item.data_solicitacao);
-      const matchesDate = (!startDate || itemDate >= startDate) && (!endDate || itemDate <= endDate);
-      const matchesOM = selectedOM === "all" || item.organizacao_id === parseInt(selectedOM);
-      return matchesDate && matchesOM;
-    });
-    
-    console.log('🔍 [Dashboard] Filtros aplicados:', {
-      total: data.length,
-      filtrados: filtered.length,
-      diferenca: data.length - filtered.length
-    });
-    
-    return filtered;
-  };
-
-  const fetchStats = async () => {
-    try {
-      console.log('📊 [Dashboard] Buscando estatísticas...');
-      const { data: allSolicitacoes, error } = await supabase
-        .from("solicitacoes")
-        .select("data_solicitacao, status, organizacao_id");
-
-      if (error) throw error;
-
-      const filtered = applyFilters(allSolicitacoes || []);
-
-      const pendentes = filtered.filter((s) => s.status === "pending").length;
-      const finalizadas = filtered.filter((s) => s.status === "completed").length;
-      const emExecucao = filtered.filter((s) => s.status === "in_progress").length;
-
-      const { count: vistoriasCount } = await supabase
-        .from("vistorias")
-        .select("*", { count: "exact", head: true });
-
-      const { count: anexosCount } = await supabase
-        .from("anexos")
-        .select("*", { count: "exact", head: true });
-
-      const stats = {
-        totalSolicitacoes: filtered.length,
-        totalVistorias: vistoriasCount || 0,
-        totalAnexos: anexosCount || 0,
-        pendentes,
-        finalizadas,
-        emExecucao,
-      };
-      
-      console.log('✅ [Dashboard] Estatísticas:', stats);
-      setStats(stats);
-    } catch (error: any) {
-      console.error('❌ [Dashboard] Erro ao carregar estatísticas:', error);
-      toast.error("Erro ao carregar estatísticas");
-    }
-  };
-
-  const fetchMonthlyData = async () => {
-    try {
-      console.log('📈 [Dashboard] Buscando dados mensais...');
-      const { data, error } = await supabase
-        .from("solicitacoes")
-        .select("data_solicitacao, status, organizacao_id");
-
-      if (error) throw error;
-
-      const filtered = applyFilters(data || []);
-
-      // Agregar por mês (Recebidas vs Realizadas)
-      const monthlyStats: Record<string, { Recebidas: number; Realizadas: number }> = {};
-      
-      filtered.forEach((item: any) => {
-        const date = new Date(item.data_solicitacao);
-        const monthKey = format(date, "MMM/yy");
-        
-        if (!monthlyStats[monthKey]) {
-          monthlyStats[monthKey] = { Recebidas: 0, Realizadas: 0 };
-        }
-        
-        monthlyStats[monthKey].Recebidas++;
-        if (item.status === "completed") {
-          monthlyStats[monthKey].Realizadas++;
-        }
-      });
-
-      // Converter para array ordenado por data
-      const chartData = Object.entries(monthlyStats)
-        .map(([mes, counts]) => ({
-          mes,
-          Recebidas: counts.Recebidas,
-          Realizadas: counts.Realizadas,
-        }))
-        .sort((a, b) => {
-          const [aMonth, aYear] = a.mes.split('/');
-          const [bMonth, bYear] = b.mes.split('/');
-          return new Date(`20${aYear}-${aMonth}-01`).getTime() - new Date(`20${bYear}-${bMonth}-01`).getTime();
-        });
-
-      console.log('✅ [Dashboard] Dados mensais processados:', chartData);
-      setMonthlyData(chartData);
-    } catch (error) {
-      console.error("❌ [Dashboard] Erro ao buscar dados mensais:", error);
-    }
-  };
-
-  const fetchOMData = async () => {
-    try {
-      console.log('🏢 [Dashboard] Buscando dados por OM...');
-      const { data: solicitacoes, error } = await supabase
-        .from("solicitacoes")
-        .select("organizacao_id, data_solicitacao");
-
-      if (error) throw error;
-
-      const filtered = applyFilters(solicitacoes || []);
-
-      const omCounts: Record<number, number> = {};
-      filtered.forEach((item) => {
-        if (item.organizacao_id) {
-          omCounts[item.organizacao_id] = (omCounts[item.organizacao_id] || 0) + 1;
-        }
-      });
-
-      const total = filtered.length;
-      const allData = organizacoes
-        .filter((org) => omCounts[org.id])
-        .map((org) => ({
-          om: org["Sigla da OM"],
-          name: org["Organização Militar"],
-          value: omCounts[org.id],
-          percentage: total > 0 ? ((omCounts[org.id] / total) * 100).toFixed(1) : '0.0',
-        }))
-        .sort((a, b) => b.value - a.value);
-
-      // Separar top 10 e outros
-      const top10 = allData.slice(0, 10);
-      const outros = allData.slice(10);
-      
-      // Criar entrada "Outros" se houver mais de 10 OMs
-      const chartData = [...top10];
-      if (outros.length > 0) {
-        const outrosTotal = outros.reduce((sum, item) => sum + item.value, 0);
-        const outrosPercentage = total > 0 ? ((outrosTotal / total) * 100).toFixed(1) : '0.0';
-        chartData.push({
-          om: `Outros (${outros.length})`,
-          name: `Outras ${outros.length} Organizações Militares`,
-          value: outrosTotal,
-          percentage: outrosPercentage,
-        });
-      }
-
-      console.log('✅ [Dashboard] Dados por OM processados:', allData.length, 'organizações (mostrando top 10)');
-      setOMData(chartData);
-      setAllOMData(allData);
-    } catch (error) {
-      console.error("❌ [Dashboard] Erro ao buscar dados por OM:", error);
-    }
-  };
-
-  const fetchOrgaoSetorialData = async () => {
-    try {
-      console.log('🏛️ [Dashboard] Buscando dados por Órgão Setorial...');
-      const { data: solicitacoes, error } = await supabase
-        .from("solicitacoes")
-        .select("organizacao_id, data_solicitacao");
-
-      if (error) throw error;
-
-      const filtered = applyFilters(solicitacoes || []);
-
-      const setorialCounts: Record<string, number> = {};
-      filtered.forEach((item) => {
-        const org = organizacoes.find((o) => o.id === item.organizacao_id);
-        if (org) {
-          const setorial = org["Órgão Setorial Responsável"];
-          setorialCounts[setorial] = (setorialCounts[setorial] || 0) + 1;
-        }
-      });
-
-      const total = filtered.length;
-      const chartData = Object.entries(setorialCounts).map(([orgao, count]) => ({
-        orgao,
-        Total: count,
-        percentage: total > 0 ? (((count as number) / total) * 100).toFixed(1) : '0.0',
-      }));
-
-      if (selectedOrgaoSetorial !== "all") {
-        const filteredData = chartData.filter((item) => item.orgao === selectedOrgaoSetorial);
-        console.log('✅ [Dashboard] Dados por Órgão Setorial processados (filtrado):', filteredData.length);
-        setOrgaoSetorialData(filteredData);
-      } else {
-        console.log('✅ [Dashboard] Dados por Órgão Setorial processados:', chartData.length, 'órgãos');
-        setOrgaoSetorialData(chartData);
-      }
-    } catch (error) {
-      console.error("❌ [Dashboard] Erro ao buscar dados por Órgão Setorial:", error);
-    }
-  };
 
   const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o["Órgão Setorial Responsável"])));
 
