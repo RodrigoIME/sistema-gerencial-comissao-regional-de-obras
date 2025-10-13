@@ -599,6 +599,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_organization_id: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       app_module: "vistorias" | "projetos" | "fiscalizacao"
