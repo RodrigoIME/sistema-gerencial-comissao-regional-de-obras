@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { CalendarIcon, Building2, Info, Loader2, User } from "lucide-react";
+import { CalendarIcon, Building2, Info, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { novaSolicitacaoSchema, NovaSolicitacaoFormData, validarArquivo } from "@/lib/formValidation";
@@ -83,7 +83,6 @@ const NovaSolicitacao = () => {
   const [diexOrganizacaoMilitar, setDiexOrganizacaoMilitar] = useState("");
   const [mensagemTelefone, setMensagemTelefone] = useState("");
   const [mensagemResponsavel, setMensagemResponsavel] = useState("");
-  const [userProfile, setUserProfile] = useState<any>(null);
 
   const {
     register,
@@ -113,30 +112,8 @@ const NovaSolicitacao = () => {
 
   useEffect(() => {
     fetchOrganizacoes();
-    loadUserProfile();
   }, []);
 
-  const loadUserProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    
-    const { data: profile } = await supabase
-      .from("usuarios")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-    
-    setUserProfile(profile);
-  };
-
-  const preencherContatoUsuarioLogado = () => {
-    if (userProfile) {
-      setValue("contatoNome", userProfile.nome || "");
-      setValue("contatoTelefone", userProfile.telefone || "");
-      setValue("contatoEmail", userProfile.email || "");
-      toast.success("Dados preenchidos com sucesso");
-    }
-  };
 
   // Carregar rascunho ao montar
   useEffect(() => {
@@ -593,19 +570,7 @@ const NovaSolicitacao = () => {
             )}
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Contato do Responsável na OM Apoiada</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={preencherContatoUsuarioLogado}
-                  className="gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  Usar meus dados
-                </Button>
-              </div>
+              <Label className="text-base font-semibold">Contato do Responsável na OM Apoiada</Label>
               
               <div className="space-y-2">
                 <RequiredLabel htmlFor="contatoNome">Nome</RequiredLabel>
