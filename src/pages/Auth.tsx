@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ClipboardCheck, LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
+import logoCRO1 from "@/assets/logo_CRO_1.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -90,8 +91,12 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-            <ClipboardCheck className="w-8 h-8 text-primary-foreground" />
+          <div className="mx-auto w-24 h-24 flex items-center justify-center">
+            <img 
+              src={logoCRO1} 
+              alt="Logo CRO 1 - Comissão Regional de Obras 1" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <CardTitle className="text-3xl font-bold">
             {isLogin ? "Bem-vindo!" : requestSent ? "Solicitação Enviada" : "Solicitar Acesso"}
