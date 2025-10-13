@@ -103,12 +103,7 @@ export type NovaSolicitacaoFormData = z.infer<typeof novaSolicitacaoSchema>;
 // Validação de arquivos
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ACCEPTED_FILE_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/jpg',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  'image/png'
 ];
 
 export const validarArquivo = (file: File): { valid: boolean; error?: string } => {
@@ -117,7 +112,7 @@ export const validarArquivo = (file: File): { valid: boolean; error?: string } =
   }
   
   if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
-    return { valid: false, error: "Tipo não permitido. Use: PDF, JPG, PNG ou DOCX" };
+    return { valid: false, error: "Tipo não permitido. Use apenas arquivos PNG" };
   }
   
   return { valid: true };

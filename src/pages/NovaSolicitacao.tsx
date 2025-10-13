@@ -62,8 +62,6 @@ const NovaSolicitacao = () => {
   const [organizacoes, setOrganizacoes] = useState<Organizacao[]>([]);
   const [documentoOrigemFile, setDocumentoOrigemFile] = useState<File | null>(null);
   const [documentoFileError, setDocumentoFileError] = useState<string>("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [filesError, setFilesError] = useState<string>("");
   const [vistoriaNoEnderecoOM, setVistoriaNoEnderecoOM] = useState(true);
   const [enderecoOMOriginal, setEnderecoOMOriginal] = useState("");
   const [searchOM, setSearchOM] = useState("");
@@ -232,29 +230,6 @@ const NovaSolicitacao = () => {
     }
   };
 
-  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    const validFiles: File[] = [];
-    let hasError = false;
-
-    for (const file of selectedFiles) {
-      const validation = validarArquivo(file);
-      if (validation.valid) {
-        validFiles.push(file);
-      } else {
-        hasError = true;
-        toast.error(`${file.name}: ${validation.error}`);
-      }
-    }
-
-    if (hasError) {
-      setFilesError("Alguns arquivos foram rejeitados");
-    } else {
-      setFilesError("");
-    }
-
-    setFiles(validFiles);
-  };
 
   const onSubmit = async (data: NovaSolicitacaoFormData) => {
     // Validar endereço
@@ -336,30 +311,6 @@ const NovaSolicitacao = () => {
         .single();
 
       if (solicitacaoError) throw solicitacaoError;
-
-      // Upload de anexos adicionais
-      if (files.length > 0) {
-        for (const file of files) {
-          const fileName = `${Date.now()}_${file.name}`;
-          const filePath = `${user.id}/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("anexos")
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("anexos")
-            .getPublicUrl(filePath);
-
-          await supabase.from("anexos").insert({
-            solicitacao_id: solicitacao.id,
-            url: publicUrl,
-            tipo: file.type,
-          });
-        }
-      }
 
       limparRascunho();
       toast.success("Solicitação criada com sucesso!");
@@ -708,12 +659,13 @@ const NovaSolicitacao = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="documentoAnexo">Anexar Documento de Origem</Label>
+              <Label htmlFor="documentoAnexo">Anexar Documento de Origem (apenas PNG)</Label>
               <FileUploadZone
                 id="documentoAnexo"
                 file={documentoOrigemFile}
                 onFileChange={handleDocumentoFileChange}
-                label="Clique para anexar o documento de origem"
+                accept=".png"
+                label="Clique para anexar o documento de origem (apenas PNG)"
                 error={documentoFileError}
               />
             </div>
@@ -743,51 +695,6 @@ const NovaSolicitacao = () => {
               </Select>
               {errors.tipoVistoria && (
                 <p className="text-sm text-destructive">{errors.tipoVistoria.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="files">Anexos Adicionais (opcional)</Label>
-              <div className={cn(
-                "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-                filesError ? "border-destructive" : "hover:border-primary",
-                files.length > 0 && "bg-secondary/50"
-              )}>
-                <input
-                  id="files"
-                  type="file"
-                  multiple
-                  onChange={handleFilesChange}
-                  className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                />
-                <label htmlFor="files" className="cursor-pointer block">
-                  {files.length === 0 ? (
-                    <>
-                      <div className="w-8 h-8 mx-auto mb-2 text-muted-foreground">📎</div>
-                      <p className="text-sm text-muted-foreground">
-                        Clique para selecionar arquivos adicionais
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Máximo 10MB por arquivo
-                      </p>
-                    </>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-primary">
-                        {files.length} arquivo(s) selecionado(s)
-                      </p>
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        {files.map((file, i) => (
-                          <div key={i}>{file.name}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </label>
-              </div>
-              {filesError && (
-                <p className="text-sm text-destructive">{filesError}</p>
               )}
             </div>
 
@@ -882,13 +789,6 @@ const NovaSolicitacao = () => {
               <div>
                 <p className="font-semibold text-sm mb-1">Documento de Origem:</p>
                 <p className="text-sm text-muted-foreground">{documentoOrigemFile.name}</p>
-              </div>
-            )}
-
-            {files.length > 0 && (
-              <div>
-                <p className="font-semibold text-sm mb-1">Anexos Adicionais:</p>
-                <p className="text-sm text-muted-foreground">{files.length} arquivo(s)</p>
               </div>
             )}
           </div>
