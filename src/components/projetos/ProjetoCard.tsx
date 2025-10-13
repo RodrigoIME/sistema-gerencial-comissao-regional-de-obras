@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
@@ -22,7 +23,7 @@ interface ProjetoCardProps {
   };
 }
 
-export const ProjetoCard = ({ projeto }: ProjetoCardProps) => {
+const ProjetoCardComponent = ({ projeto }: ProjetoCardProps) => {
   const navigate = useNavigate();
 
   const prioridadeColor = {
@@ -101,3 +102,6 @@ export const ProjetoCard = ({ projeto }: ProjetoCardProps) => {
     </Card>
   );
 };
+
+export const ProjetoCard = memo(ProjetoCardComponent);
+ProjetoCard.displayName = 'ProjetoCard';

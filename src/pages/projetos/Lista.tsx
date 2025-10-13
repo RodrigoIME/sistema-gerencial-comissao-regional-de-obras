@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProjetoCard } from "@/components/projetos/ProjetoCard";
@@ -28,6 +27,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { exportProjetosToExcel } from "@/lib/projetoExportUtils";
+import { useProjetosLista } from "@/hooks/useProjetosLista";
 import {
   Pagination,
   PaginationContent,
@@ -45,9 +45,6 @@ export default function ProjetosLista() {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const [loading, setLoading] = useState(true);
-  const [projetos, setProjetos] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   
   // Filtros básicos
@@ -72,9 +69,37 @@ export default function ProjetosLista() {
   
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Hook do React Query (substitui useEffect + fetch)
+  const { data, isLoading, error } = useProjetosLista({
+    searchTerm,
+    statusFilter,
+    diretoriaFilter,
+    omExecutoraFilter,
+    valorMin,
+    valorMax,
+    dateFrom,
+    dateTo,
+    sortBy,
+    sortOrder,
+    currentPage,
+  });
+
+  const projetos = data?.projetos || [];
+  const totalCount = data?.totalCount || 0;
+  const totalPages = data?.totalPages || 0;
+  const startItem = data?.startItem || 0;
+  const endItem = data?.endItem || 0;
+
+  // Tratamento de erros
   useEffect(() => {
-    fetchProjetos();
-  }, [currentPage, searchTerm, statusFilter, diretoriaFilter, omExecutoraFilter, sortBy, sortOrder, valorMin, valorMax, dateFrom, dateTo]);
+    if (error) {
+      toast({
+        title: "Erro ao carregar projetos",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   useEffect(() => {
     // Atualizar URL com filtros
@@ -91,68 +116,7 @@ export default function ProjetosLista() {
     if (sortOrder !== "desc") params.sortOrder = sortOrder;
     
     setSearchParams(params);
-  }, [searchTerm, statusFilter, diretoriaFilter, omExecutoraFilter, valorMin, valorMax, dateFrom, dateTo, sortBy, sortOrder]);
-
-  const fetchProjetos = async () => {
-    try {
-      setLoading(true);
-
-      const from = (currentPage - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      let query = supabase
-        .from("projetos")
-        .select(`
-          *,
-          organizacao:organizacoes(*)
-        `, { count: 'exact' });
-
-      // Aplicar filtros
-      if (searchTerm) {
-        query = query.or(`numero_opus.ilike.%${searchTerm}%,objeto.ilike.%${searchTerm}%`);
-      }
-      if (statusFilter !== "todos") {
-        query = query.eq("status", statusFilter);
-      }
-      if (diretoriaFilter !== "todos") {
-        query = query.eq("diretoria_responsavel", diretoriaFilter);
-      }
-      if (omExecutoraFilter !== "todos") {
-        query = query.eq("om_executora", omExecutoraFilter);
-      }
-      if (valorMin > 0 || valorMax < 10000000) {
-        query = query.gte("valor_estimado_dfd", valorMin).lte("valor_estimado_dfd", valorMax);
-      }
-      if (dateFrom) {
-        query = query.gte("created_at", dateFrom.toISOString());
-      }
-      if (dateTo) {
-        query = query.lte("created_at", dateTo.toISOString());
-      }
-
-      // Ordenação
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-      // Paginação
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      setProjetos(data || []);
-      setTotalCount(count || 0);
-    } catch (error: any) {
-      console.error("Erro ao carregar projetos:", error);
-      toast({
-        title: "Erro ao carregar projetos",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchTerm, statusFilter, diretoriaFilter, omExecutoraFilter, valorMin, valorMax, dateFrom, dateTo, sortBy, sortOrder, setSearchParams]);
 
   const handleExport = (format: "excel" | "pdf") => {
     if (format === "excel") {
@@ -188,10 +152,6 @@ export default function ProjetosLista() {
     dateFrom,
     dateTo,
   ].filter(Boolean).length;
-
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-  const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
 
   const renderPaginationItems = () => {
     const items = [];
@@ -261,7 +221,7 @@ export default function ProjetosLista() {
     return items;
   };
 
-  if (loading && currentPage === 1) {
+  if (isLoading && currentPage === 1) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -525,7 +485,7 @@ export default function ProjetosLista() {
       )}
 
       {/* Lista de Projetos */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
