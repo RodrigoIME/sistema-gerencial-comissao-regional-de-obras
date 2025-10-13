@@ -103,8 +103,8 @@ const calculateOMData = (filtered: Solicitacao[], organizacoes: Organizacao[]) =
   const allData = organizacoes
     .filter((org) => omCounts[org.id])
     .map((org) => ({
-      om: org["Sigla da OM"],
-      name: org["Organização Militar"],
+      om: org.sigla,
+      name: org.nome,
       value: omCounts[org.id],
       percentage: total > 0 ? ((omCounts[org.id] / total) * 100).toFixed(1) : '0.0',
     }))
@@ -138,7 +138,7 @@ const calculateOrgaoSetorialData = (
   filtered.forEach((item) => {
     const org = organizacoes.find((o) => o.id === item.organizacao_id);
     if (org) {
-      const setorial = org["Órgão Setorial Responsável"];
+      const setorial = org.diretoria;
       setorialCounts[setorial] = (setorialCounts[setorial] || 0) + 1;
     }
   });

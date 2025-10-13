@@ -58,7 +58,7 @@ const Dashboard = () => {
     '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444',
   ];
 
-  const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o["Órgão Setorial Responsável"]).filter(Boolean)));
+  const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o.diretoria).filter(Boolean)));
 
   const cards = [
     {
@@ -178,7 +178,7 @@ const Dashboard = () => {
                   <SelectItem value="all">Todas</SelectItem>
                   {organizacoes.map((org) => (
                     <SelectItem key={org.id} value={org.id.toString()}>
-                      {org["Organização Militar"]}
+                      {org.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
