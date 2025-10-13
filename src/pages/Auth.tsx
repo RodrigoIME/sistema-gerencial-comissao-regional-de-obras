@@ -88,8 +88,21 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: 'url(/auth-background.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay semi-transparente para garantir legibilidade */}
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+      
+      {/* Card com z-index para ficar acima do overlay */}
+      <div className="relative z-10 w-full max-w-md">
+        <Card className="w-full shadow-2xl border-0 animate-fade-in">
         <CardHeader className="space-y-4 text-center">
           <div className="mx-auto w-24 h-24 flex items-center justify-center">
             <img 
@@ -241,7 +254,8 @@ const Auth = () => {
             </>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };
