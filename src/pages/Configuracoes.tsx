@@ -51,6 +51,8 @@ const POSTOS_GRADUACOES = [
   "Civil",
 ];
 
+const ORGANIZACOES_PERMITIDAS_SIGLAS = ['CRO 1', '5º Gpt E'];
+
 const Configuracoes = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -113,6 +115,7 @@ const Configuracoes = () => {
     const { data, error } = await supabase
       .from("organizacoes")
       .select("id, \"Organização Militar\", \"Sigla da OM\"")
+      .in("Sigla da OM", ORGANIZACOES_PERMITIDAS_SIGLAS)
       .order("\"Organização Militar\"");
 
     if (error) {
