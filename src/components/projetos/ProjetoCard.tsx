@@ -84,8 +84,9 @@ const ProjetoCardComponent = ({ projeto }: ProjetoCardProps) => {
             variant="outline"
             className="flex-1"
             onClick={() => navigate(`/projetos/${projeto.id}`)}
+            aria-label={`Visualizar detalhes do projeto ${projeto.numero_opus}`}
           >
-            <Eye className="h-4 w-4 mr-1" />
+            <Eye className="h-4 w-4 mr-1" aria-hidden="true" />
             Visualizar
           </Button>
           <Button
@@ -93,8 +94,9 @@ const ProjetoCardComponent = ({ projeto }: ProjetoCardProps) => {
             variant="outline"
             className="flex-1"
             onClick={() => navigate(`/projetos/${projeto.id}/editar`)}
+            aria-label={`Editar projeto ${projeto.numero_opus}`}
           >
-            <Edit className="h-4 w-4 mr-1" />
+            <Edit className="h-4 w-4 mr-1" aria-hidden="true" />
             Editar
           </Button>
         </div>

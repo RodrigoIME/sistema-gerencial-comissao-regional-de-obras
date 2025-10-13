@@ -111,8 +111,12 @@ export default function ProjetosDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen" role="status" aria-live="polite">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true" />
+          <span className="text-lg text-muted-foreground">Carregando dados do dashboard...</span>
+          <span className="sr-only">Carregando dados do dashboard...</span>
+        </div>
       </div>
     );
   }

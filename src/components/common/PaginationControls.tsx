@@ -115,16 +115,21 @@ export const PaginationControls = ({
   return (
     <div className="flex flex-col items-center gap-4 mt-6">
       {/* Info de itens */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted-foreground" role="status" aria-live="polite">
         Mostrando{" "}
         <span className="font-medium text-foreground">{startItem}</span> a{" "}
         <span className="font-medium text-foreground">{endItem}</span> de{" "}
         <span className="font-medium text-foreground">{totalItems}</span> itens
       </div>
+      
+      {/* Região de status oculta para screen readers */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        Página {currentPage} de {totalPages}. Mostrando itens {startItem} a {endItem} de {totalItems}.
+      </div>
 
       {/* Controles de paginação */}
       <Pagination>
-        <PaginationContent>
+        <PaginationContent className="gap-1" role="navigation" aria-label="Navegação de páginas">
           {showFirstLast && onFirstPage && (
             <PaginationItem>
               <Button

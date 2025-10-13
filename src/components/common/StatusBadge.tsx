@@ -43,8 +43,9 @@ export const StatusBadge = ({
     <Badge 
       variant="outline" 
       className={cn(variant.className, className, showIcon && Icon && "gap-1.5")}
+      aria-label={`Status: ${variant.label}`}
     >
-      {showIcon && Icon && <Icon className="h-3.5 w-3.5" />}
+      {showIcon && Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
       {variant.label}
     </Badge>
   );

@@ -128,20 +128,20 @@ export const UsersList = ({ users, onUpdate }: UsersListProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
+          <Table role="table" aria-label="Lista de usuários do sistema">
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Cadastrado em</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead>Módulos</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead scope="col">Email</TableHead>
+                <TableHead scope="col">Cadastrado em</TableHead>
+                <TableHead scope="col">Roles</TableHead>
+                <TableHead scope="col">Módulos</TableHead>
+                <TableHead scope="col" className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
+                  <TableCell scope="row" className="font-medium">{user.email}</TableCell>
                   <TableCell>
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
@@ -168,8 +168,9 @@ export const UsersList = ({ users, onUpdate }: UsersListProps) => {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleEditUser(user)}
+                      aria-label={`Editar permissões de ${user.email}`}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </TableCell>
                 </TableRow>

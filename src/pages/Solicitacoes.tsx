@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, Search, Upload, AlertCircle, X, FileDown, FileSpreadsheet } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format, subDays, subMonths, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -224,8 +225,12 @@ const Solicitacoes = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-lg text-muted-foreground">Carregando...</div>
+      <div className="flex items-center justify-center min-h-[400px]" role="status" aria-live="polite">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true" />
+          <span className="text-lg text-muted-foreground">Carregando solicitações...</span>
+          <span className="sr-only">Carregando solicitações...</span>
+        </div>
       </div>
     );
   }
@@ -240,20 +245,21 @@ const Solicitacoes = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportExcel} className="gap-2">
-            <FileSpreadsheet className="h-4 w-4" />
+          <Button variant="outline" onClick={handleExportExcel} className="gap-2" aria-label="Exportar solicitações para Excel">
+            <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
             Baixar Excel
           </Button>
-          <Button variant="outline" onClick={handleExportPDF} className="gap-2">
-            <FileDown className="h-4 w-4" />
+          <Button variant="outline" onClick={handleExportPDF} className="gap-2" aria-label="Exportar solicitações para PDF">
+            <FileDown className="h-4 w-4" aria-hidden="true" />
             Baixar PDF
           </Button>
           {isAdmin && (
             <Button
               onClick={() => navigate("/importar-vistorias")}
               className="gap-2"
+              aria-label="Importar vistorias de planilha"
             >
-              <Upload className="h-4 w-4" />
+              <Upload className="h-4 w-4" aria-hidden="true" />
               Importar Vistorias
             </Button>
           )}
@@ -265,7 +271,7 @@ const Solicitacoes = () => {
           <div>
             <CardTitle>Filtros</CardTitle>
             {activeFiltersCount > 0 && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1" role="status" aria-live="polite">
                 {activeFiltersCount} filtro{activeFiltersCount > 1 ? "s" : ""} ativo{activeFiltersCount > 1 ? "s" : ""}
               </p>
             )}
@@ -279,12 +285,15 @@ const Solicitacoes = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Label htmlFor="search-input" className="sr-only">Buscar solicitações</Label>
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
+              id="search-input"
               placeholder="Buscar por objeto ou organização..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              aria-label="Buscar por objeto ou organização"
             />
           </div>
           
@@ -340,7 +349,7 @@ const Solicitacoes = () => {
             </Select>
           </div>
 
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground" role="status" aria-live="polite">
             Mostrando <span className="font-semibold text-foreground">{filteredSolicitacoes.length}</span> de{" "}
             <span className="font-semibold text-foreground">{solicitacoes.length}</span> solicitações
           </div>
@@ -350,7 +359,7 @@ const Solicitacoes = () => {
       <div className="grid gap-4">
         {filteredSolicitacoes.length === 0 ? (
           <Card className="border-0 shadow-lg">
-            <CardContent className="py-12 text-center">
+            <CardContent className="py-12 text-center" role="status">
               <p className="text-muted-foreground">
                 Nenhuma solicitação encontrada
               </p>
@@ -360,7 +369,9 @@ const Solicitacoes = () => {
           filteredSolicitacoes.map((solicitacao) => (
             <Card
               key={solicitacao.id}
-              className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+              className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
+              role="article"
+              aria-labelledby={`solicitacao-${solicitacao.id}-title`}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-4">
@@ -371,7 +382,7 @@ const Solicitacoes = () => {
                           {solicitacao.numero_vistoria}
                         </Badge>
                       )}
-                      <h3 className="text-lg font-semibold">{solicitacao.objeto}</h3>
+                      <h3 id={`solicitacao-${solicitacao.id}-title`} className="text-lg font-semibold">{solicitacao.objeto}</h3>
                       {getStatusBadge(solicitacao.status)}
                       {getUrgenciaBadge(solicitacao.classificacao_urgencia)}
                     </div>
@@ -392,8 +403,9 @@ const Solicitacoes = () => {
                     onClick={() => navigate(`/solicitacao/${solicitacao.id}`)}
                     size="sm"
                     className="gap-2"
+                    aria-label={`Ver detalhes da solicitação ${solicitacao.objeto}`}
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-4 h-4" aria-hidden="true" />
                     Ver Detalhes
                   </Button>
                 </div>

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ProjetoCard } from "@/components/projetos/ProjetoCard";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Filter, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -223,8 +224,12 @@ export default function ProjetosLista() {
 
   if (isLoading && currentPage === 1) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen" role="status" aria-live="polite">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true" />
+          <span className="text-lg text-muted-foreground">Carregando projetos...</span>
+          <span className="sr-only">Carregando projetos...</span>
+        </div>
       </div>
     );
   }
@@ -235,15 +240,15 @@ export default function ProjetosLista() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Projetos</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground" role="status" aria-live="polite">
             {totalCount} projeto(s) encontrado(s)
           </p>
         </div>
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
+              <Button variant="outline" aria-label="Exportar projetos">
+                <Download className="h-4 w-4 mr-2" aria-hidden="true" />
                 Exportar
               </Button>
             </DropdownMenuTrigger>
@@ -263,8 +268,10 @@ export default function ProjetosLista() {
       {/* Filtros Básicos */}
       <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Label htmlFor="projeto-search" className="sr-only">Buscar projetos</Label>
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Input
+            id="projeto-search"
             placeholder="Buscar por OPUS ou objeto..."
             value={searchTerm}
             onChange={(e) => {
@@ -272,6 +279,7 @@ export default function ProjetosLista() {
               setCurrentPage(1);
             }}
             className="pl-9"
+            aria-label="Buscar por OPUS ou objeto"
           />
         </div>
         <Select 
@@ -317,11 +325,14 @@ export default function ProjetosLista() {
         <Button
           variant="outline"
           onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          aria-label={`${showAdvancedFilters ? 'Ocultar' : 'Mostrar'} filtros avançados`}
+          aria-expanded={showAdvancedFilters}
+          aria-controls="advanced-filters"
         >
-          <Filter className="h-4 w-4 mr-2" />
+          <Filter className="h-4 w-4 mr-2" aria-hidden="true" />
           Filtros Avançados
           {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
+            <Badge variant="secondary" className="ml-2" aria-label={`${activeFiltersCount} filtros ativos`}>
               {activeFiltersCount}
             </Badge>
           )}
@@ -330,7 +341,7 @@ export default function ProjetosLista() {
 
       {/* Filtros Avançados */}
       {showAdvancedFilters && (
-        <Card className="p-4">
+        <Card id="advanced-filters" className="p-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Filtros Avançados</h3>
@@ -486,11 +497,14 @@ export default function ProjetosLista() {
 
       {/* Lista de Projetos */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
+            <span className="sr-only">Carregando projetos...</span>
+          </div>
         </div>
       ) : projetos.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12" role="status">
           <p className="text-muted-foreground">Nenhum projeto encontrado</p>
         </div>
       ) : (

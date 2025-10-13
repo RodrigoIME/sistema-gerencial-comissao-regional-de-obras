@@ -1,5 +1,6 @@
 import { Upload, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface FileUploadZoneProps {
@@ -32,17 +33,19 @@ export const FileUploadZone = ({
           onChange={(e) => onFileChange(e.target.files?.[0] || null)}
           className="hidden"
           accept={accept}
+          aria-describedby={error ? `${id}-error` : undefined}
+          aria-invalid={!!error}
         />
         
         {!file ? (
-          <label htmlFor={id} className="cursor-pointer block">
-            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+          <Label htmlFor={id} className="cursor-pointer block">
+            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">{label}</p>
-          </label>
+          </Label>
         ) : (
           <div className="flex items-center justify-between gap-3 p-3 bg-background rounded border">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <FileText className="w-5 h-5 text-primary shrink-0" />
+              <FileText className="w-5 h-5 text-primary shrink-0" aria-hidden="true" />
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-medium truncate">{file.name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -56,15 +59,18 @@ export const FileUploadZone = ({
               size="sm"
               onClick={() => onFileChange(null)}
               className="shrink-0"
+              aria-label={`Remover arquivo ${file.name}`}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
         )}
       </div>
       
       {error && (
-        <p className="text-sm text-destructive mt-1">{error}</p>
+        <p id={`${id}-error`} className="text-sm text-destructive mt-1" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { SkipLink } from "@/components/ui/skip-link";
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -96,6 +97,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <SidebarProvider>
+      <SkipLink />
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
@@ -153,7 +155,7 @@ const Layout = ({ children }: LayoutProps) => {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 p-6 bg-background">
+          <main id="main-content" className="flex-1 p-6 bg-background">
             {children}
           </main>
         </div>
