@@ -105,7 +105,9 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center gap-4">
               <SidebarTrigger />
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Sistema de Inspeções
+                {location.pathname.startsWith('/projetos') 
+                  ? 'Módulo de Projetos' 
+                  : 'Sistema de Inspeções'}
               </h1>
             </div>
             <div className="flex items-center gap-3">

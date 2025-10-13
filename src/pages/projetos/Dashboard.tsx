@@ -136,10 +136,6 @@ export default function ProjetosDashboard() {
             <List className="h-4 w-4 mr-2" />
             Ver Lista
           </Button>
-          <Button onClick={() => navigate("/projetos/novo")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Projeto
-          </Button>
         </div>
       </div>
 
