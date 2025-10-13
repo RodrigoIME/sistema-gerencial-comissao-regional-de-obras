@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { handleError, createStorageError } from "@/lib/errors";
 
 const BUCKET_NAME = "projetos-anexos";
 
@@ -17,7 +18,7 @@ export const uploadProjetoAnexo = async (
   projetoId: string,
   file: File,
   userId: string
-): Promise<{ success: boolean; error?: string; anexo?: ProjetoAnexo }> => {
+): Promise<{ success: boolean; error?: string; code?: string; anexo?: ProjetoAnexo }> => {
   try {
     const fileExt = file.name.split(".").pop();
     const fileName = `${projetoId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -28,8 +29,11 @@ export const uploadProjetoAnexo = async (
       .upload(fileName, file);
 
     if (uploadError) {
-      console.error("Erro no upload:", uploadError);
-      return { success: false, error: uploadError.message };
+      throw createStorageError('upload', file.name, {
+        module: 'projetos',
+        action: 'upload',
+        metadata: { projetoId },
+      });
     }
 
     // Obter URL pública
@@ -52,22 +56,29 @@ export const uploadProjetoAnexo = async (
       .single();
 
     if (dbError) {
-      console.error("Erro ao salvar registro:", dbError);
       // Tentar deletar arquivo do storage
       await supabase.storage.from(BUCKET_NAME).remove([fileName]);
-      return { success: false, error: dbError.message };
+      throw dbError;
     }
 
     return { success: true, anexo: data };
   } catch (error) {
-    console.error("Erro inesperado:", error);
-    return { success: false, error: "Erro inesperado ao fazer upload" };
+    const appError = handleError(error, {
+      context: 'storageUtils.uploadProjetoAnexo',
+      showToast: false,
+    });
+    
+    return { 
+      success: false, 
+      error: appError.userMessage,
+      code: appError.code,
+    };
   }
 };
 
 export const getProjetoAnexos = async (
   projetoId: string
-): Promise<{ success: boolean; anexos?: ProjetoAnexo[]; error?: string }> => {
+): Promise<{ success: boolean; anexos?: ProjetoAnexo[]; error?: string; code?: string }> => {
   try {
     const { data, error } = await supabase
       .from("projetos_anexos")
@@ -75,30 +86,37 @@ export const getProjetoAnexos = async (
       .eq("projeto_id", projetoId)
       .order("uploaded_at", { ascending: false });
 
-    if (error) {
-      console.error("Erro ao buscar anexos:", error);
-      return { success: false, error: error.message };
-    }
+    if (error) throw error;
 
     return { success: true, anexos: data || [] };
   } catch (error) {
-    console.error("Erro inesperado:", error);
-    return { success: false, error: "Erro ao buscar anexos" };
+    const appError = handleError(error, {
+      context: 'storageUtils.getProjetoAnexos',
+      showToast: false,
+    });
+    
+    return { 
+      success: false, 
+      error: appError.userMessage,
+      code: appError.code,
+    };
   }
 };
 
 export const downloadProjetoAnexo = async (
   filePath: string,
   fileName: string
-): Promise<{ success: boolean; error?: string }> => {
+): Promise<{ success: boolean; error?: string; code?: string }> => {
   try {
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .download(filePath);
 
     if (error) {
-      console.error("Erro ao fazer download:", error);
-      return { success: false, error: error.message };
+      throw createStorageError('download', fileName, {
+        module: 'projetos',
+        action: 'download',
+      });
     }
 
     // Criar link temporário e iniciar download
@@ -113,15 +131,23 @@ export const downloadProjetoAnexo = async (
 
     return { success: true };
   } catch (error) {
-    console.error("Erro inesperado:", error);
-    return { success: false, error: "Erro ao fazer download" };
+    const appError = handleError(error, {
+      context: 'storageUtils.downloadProjetoAnexo',
+      showToast: false,
+    });
+    
+    return { 
+      success: false, 
+      error: appError.userMessage,
+      code: appError.code,
+    };
   }
 };
 
 export const deleteProjetoAnexo = async (
   anexoId: string,
   filePath: string
-): Promise<{ success: boolean; error?: string }> => {
+): Promise<{ success: boolean; error?: string; code?: string }> => {
   try {
     // Deletar do storage
     const { error: storageError } = await supabase.storage
@@ -129,8 +155,11 @@ export const deleteProjetoAnexo = async (
       .remove([filePath]);
 
     if (storageError) {
-      console.error("Erro ao deletar do storage:", storageError);
-      return { success: false, error: storageError.message };
+      throw createStorageError('delete', filePath, {
+        module: 'projetos',
+        action: 'delete',
+        metadata: { anexoId },
+      });
     }
 
     // Deletar registro do banco
@@ -139,15 +168,20 @@ export const deleteProjetoAnexo = async (
       .delete()
       .eq("id", anexoId);
 
-    if (dbError) {
-      console.error("Erro ao deletar registro:", dbError);
-      return { success: false, error: dbError.message };
-    }
+    if (dbError) throw dbError;
 
     return { success: true };
   } catch (error) {
-    console.error("Erro inesperado:", error);
-    return { success: false, error: "Erro ao deletar anexo" };
+    const appError = handleError(error, {
+      context: 'storageUtils.deleteProjetoAnexo',
+      showToast: false,
+    });
+    
+    return { 
+      success: false, 
+      error: appError.userMessage,
+      code: appError.code,
+    };
   }
 };
 

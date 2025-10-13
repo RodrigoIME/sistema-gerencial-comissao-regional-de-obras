@@ -6,7 +6,17 @@ export const salvarRascunho = (data: any): void => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
     localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
   } catch (error) {
-    console.error('Erro ao salvar rascunho:', error);
+    // localStorage cheio ou desabilitado
+    const isQuotaExceeded = error instanceof DOMException && 
+      (error.name === 'QuotaExceededError' || error.code === 22);
+    
+    if (isQuotaExceeded) {
+      console.error('[draftStorage] LocalStorage quota exceeded');
+      throw new Error('Espaço de armazenamento local cheio. Limpe o cache do navegador.');
+    }
+    
+    console.error('[draftStorage] Erro ao salvar rascunho:', error);
+    throw new Error('Erro ao salvar rascunho localmente');
   }
 };
 
@@ -51,7 +61,17 @@ export const salvarRascunhoProjeto = (data: any): void => {
     localStorage.setItem(PROJETO_DRAFT_KEY, JSON.stringify(data));
     localStorage.setItem(PROJETO_DRAFT_TIMESTAMP_KEY, new Date().toISOString());
   } catch (error) {
-    console.error('Erro ao salvar rascunho de projeto:', error);
+    // localStorage cheio ou desabilitado
+    const isQuotaExceeded = error instanceof DOMException && 
+      (error.name === 'QuotaExceededError' || error.code === 22);
+    
+    if (isQuotaExceeded) {
+      console.error('[draftStorage] LocalStorage quota exceeded (projeto)');
+      throw new Error('Espaço de armazenamento local cheio. Limpe o cache do navegador.');
+    }
+    
+    console.error('[draftStorage] Erro ao salvar rascunho de projeto:', error);
+    throw new Error('Erro ao salvar rascunho localmente');
   }
 };
 

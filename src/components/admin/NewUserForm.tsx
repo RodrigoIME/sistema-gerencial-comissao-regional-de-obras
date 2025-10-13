@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
+import { handleError, createValidationError } from "@/lib/errors";
 
 interface NewUserFormProps {
   onSuccess: () => void;
@@ -46,12 +47,22 @@ export const NewUserForm = ({ onSuccess }: NewUserFormProps) => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.password) {
-      toast.error('Preencha todos os campos obrigatórios');
+      handleError(
+        createValidationError('Preencha todos os campos obrigatórios', {
+          module: 'admin',
+          action: 'create_user',
+        })
+      );
       return;
     }
 
     if (selectedRoles.length === 0) {
-      toast.error('Selecione pelo menos uma role');
+      handleError(
+        createValidationError('Selecione pelo menos uma role', {
+          module: 'admin',
+          action: 'create_user',
+        })
+      );
       return;
     }
 
@@ -82,9 +93,8 @@ export const NewUserForm = ({ onSuccess }: NewUserFormProps) => {
       setSelectedModules([]);
       
       onSuccess();
-    } catch (error: any) {
-      console.error('Erro ao criar usuário:', error);
-      toast.error('Erro ao criar usuário: ' + (error.message || 'Erro desconhecido'));
+    } catch (error) {
+      handleError(error, { context: 'NewUserForm' });
     } finally {
       setCreating(false);
     }

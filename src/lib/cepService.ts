@@ -1,3 +1,5 @@
+import { createValidationError, createNetworkError } from '@/lib/errors';
+
 export interface EnderecoViaCEP {
   cep: string;
   logradouro: string;
@@ -12,15 +14,30 @@ export const buscarEnderecoPorCEP = async (cep: string): Promise<EnderecoViaCEP 
   const cepLimpo = cep.replace(/\D/g, '');
   
   if (cepLimpo.length !== 8) {
-    throw new Error("CEP deve ter 8 dígitos");
+    throw createValidationError("CEP deve ter 8 dígitos", {
+      module: 'cep',
+      action: 'buscar',
+    });
   }
   
   try {
     const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+    
+    if (!response.ok) {
+      throw createNetworkError('Erro ao buscar CEP', {
+        module: 'cep',
+        metadata: { statusCode: response.status },
+      });
+    }
+    
     const data = await response.json();
     
     if (data.erro) {
-      throw new Error("CEP não encontrado");
+      throw createValidationError("CEP não encontrado", {
+        module: 'cep',
+        action: 'buscar',
+        metadata: { cep: cepLimpo },
+      });
     }
     
     return data;

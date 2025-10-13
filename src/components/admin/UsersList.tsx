@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Users, Edit } from "lucide-react";
+import { handleError } from "@/lib/errors";
 
 interface SystemUser {
   id: string;
@@ -107,9 +108,8 @@ export const UsersList = ({ users, onUpdate }: UsersListProps) => {
       toast.success('Usuário atualizado com sucesso!');
       setEditDialogOpen(false);
       onUpdate();
-    } catch (error: any) {
-      console.error('Erro ao atualizar usuário:', error);
-      toast.error('Erro ao atualizar usuário: ' + error.message);
+    } catch (error) {
+      handleError(error, { context: 'UsersList.handleUpdateUser' });
     } finally {
       setUpdating(false);
     }

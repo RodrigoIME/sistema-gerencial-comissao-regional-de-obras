@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { handleError } from '@/lib/errors';
 
 export type AppRole = 'admin' | 'user';
 export type AppModule = 'vistorias' | 'projetos' | 'fiscalizacao';
@@ -65,7 +66,10 @@ export const useUserRole = (user: User | null): UserRoleData => {
         setRoles(fetchedRoles);
         setModules(fetchedModules);
       } catch (error) {
-        console.error('[useUserRole] Erro crítico ao buscar dados do usuário:', error);
+        handleError(error, { 
+          context: 'useUserRole',
+          showToast: false, // Não mostrar toast para erros de role
+        });
       } finally {
         setLoading(false);
       }
