@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { AppError } from './AppError';
 import { ErrorType } from './types';
 import { PostgrestError } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger/init';
 
 export interface ErrorHandlerOptions {
   showToast?: boolean;
@@ -51,15 +52,18 @@ export const handleError = (
 
   // Logar no console
   if (logToConsole) {
-    const logPrefix = context ? `[${context}]` : '[Error]';
-    console.error(`${logPrefix} [${appError.code}]`, {
-      type: appError.type,
-      message: appError.message,
-      userMessage: appError.userMessage,
-      context: appError.context,
-      timestamp: appError.timestamp,
-      stack: appError.stack,
-    });
+    logger.error(
+      appError.userMessage,
+      new Error(appError.message),
+      {
+        module: context || 'Unknown',
+        metadata: {
+          code: appError.code,
+          type: appError.type,
+          context: appError.context,
+        },
+      }
+    );
   }
 
   // Mostrar toast

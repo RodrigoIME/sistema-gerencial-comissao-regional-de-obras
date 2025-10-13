@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger/init';
 import { supabase } from "@/integrations/supabase/client";
 import { AppError, ErrorType, handleError } from "@/lib/errors";
 
@@ -167,8 +168,11 @@ export class ProjetosService {
         valor_anterior: valorAnterior || null,
       });
     } catch (error) {
-      // Não falhar a operação principal se o log falhar
-      console.error("Erro ao registrar histórico:", error);
+      logger.error(
+        'Falha ao registrar histórico do projeto',
+        error instanceof Error ? error : new Error(String(error)),
+        { module: 'ProjetosService', action: 'registrarHistorico' }
+      );
     }
   }
 
