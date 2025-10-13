@@ -58,7 +58,7 @@ const Dashboard = () => {
     '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444',
   ];
 
-  const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o["Órgão Setorial Responsável"])));
+  const orgaosSetoriais = Array.from(new Set(organizacoes.map((o) => o["Órgão Setorial Responsável"]).filter(Boolean)));
 
   const cards = [
     {
@@ -195,8 +195,8 @@ const Dashboard = () => {
                 <SelectContent className="bg-background">
                   <SelectItem value="all">Todos</SelectItem>
                   {orgaosSetoriais.map((orgao) => (
-                    <SelectItem key={orgao} value={orgao}>
-                      {orgao}
+                    <SelectItem key={orgao || 'unknown'} value={orgao || ''}>
+                      {orgao || 'Sem Órgão'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -348,7 +348,7 @@ const Dashboard = () => {
                         style={{ fontSize: 11 }}
                       />
                       {omData.map((entry, index) => {
-                        const isOutros = entry.om.startsWith('Outros');
+                        const isOutros = entry.om?.startsWith('Outros') || false;
                         const color = isOutros ? '#9CA3AF' : OM_COLORS[index % OM_COLORS.length];
                         return <Cell key={`cell-${index}`} fill={color} />;
                       })}
