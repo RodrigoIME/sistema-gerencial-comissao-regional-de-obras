@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { CalendarIcon, Building2, Info, Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -94,6 +95,7 @@ const NovaSolicitacao = () => {
     defaultValues: {
       dataSolicitacao: new Date(),
       classificacaoUrgencia: "Normal",
+      especialidadesEnvolvidas: [],
     }
   });
 
@@ -125,6 +127,13 @@ const NovaSolicitacao = () => {
             setValue(key as any, rascunho.data[key]);
           }
         });
+        
+        // Restaurar especialidades
+        if (rascunho.data.especialidadesEnvolvidas) {
+          setEspecialidades(rascunho.data.especialidadesEnvolvidas);
+          setValue("especialidadesEnvolvidas", rascunho.data.especialidadesEnvolvidas);
+        }
+        
         toast.info("Rascunho recuperado automaticamente");
       }
     }
@@ -698,6 +707,51 @@ const NovaSolicitacao = () => {
               )}
             </div>
 
+            <div className="space-y-3">
+              <RequiredLabel htmlFor="especialidades">
+                Especialidade Envolvida
+              </RequiredLabel>
+              <p className="text-sm text-muted-foreground mb-3">
+                Selecione uma ou mais especialidades necessárias para a vistoria
+              </p>
+              <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+                {ESPECIALIDADES.map((especialidade) => (
+                  <div key={especialidade} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`especialidade-${especialidade}`}
+                      checked={especialidades.includes(especialidade)}
+                      onCheckedChange={(checked) => {
+                        let novasEspecialidades: string[];
+                        if (checked) {
+                          novasEspecialidades = [...especialidades, especialidade];
+                        } else {
+                          novasEspecialidades = especialidades.filter(
+                            (e) => e !== especialidade
+                          );
+                        }
+                        setEspecialidades(novasEspecialidades);
+                        setValue("especialidadesEnvolvidas", novasEspecialidades, {
+                          shouldValidate: true
+                        });
+                      }}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <Label
+                      htmlFor={`especialidade-${especialidade}`}
+                      className="text-sm font-normal cursor-pointer flex-1"
+                    >
+                      {especialidade}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {errors.especialidadesEnvolvidas && (
+                <p className="text-sm text-destructive">
+                  {errors.especialidadesEnvolvidas.message}
+                </p>
+              )}
+            </div>
+
             <div className="flex gap-3">
               <Button
                 type="button"
@@ -759,6 +813,30 @@ const NovaSolicitacao = () => {
             <div>
               <p className="font-semibold text-sm mb-1">Tipo de Vistoria:</p>
               <p className="text-sm text-muted-foreground">{watchedFields.tipoVistoria}</p>
+            </div>
+            
+            <div>
+              <p className="font-semibold text-sm mb-1">Especialidades Envolvidas:</p>
+              <div className="flex flex-wrap gap-2">
+                {watchedFields.especialidadesEnvolvidas && 
+                 watchedFields.especialidadesEnvolvidas.length > 0 ? (
+                  watchedFields.especialidadesEnvolvidas.map((esp) => (
+                    <span
+                      key={esp}
+                      className={cn(
+                        "inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium",
+                        esp === "Especialidade Indisponível"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                          : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      )}
+                    >
+                      {esp}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhuma especialidade selecionada</p>
+                )}
+              </div>
             </div>
             
             <div>
