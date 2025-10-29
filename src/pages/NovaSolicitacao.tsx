@@ -649,7 +649,7 @@ const NovaSolicitacao = () => {
                 placeholder="Descreva os dados do documento (número, tipo, data, etc.)"
                 {...register("documentoOrigemDados")}
                 className={cn(
-                  "min-h-[80px]",
+                  "min-h-[40px]",
                   errors.documentoOrigemDados && "border-destructive focus-visible:ring-destructive"
                 )}
               />
